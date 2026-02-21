@@ -1,0 +1,15 @@
+{p} strpos "hello world" "world"
+{output} = "strpos: {p}"
+
+{c} cmp "9" "3"
+{output} = "cmp 9 3: {c}"
+
+{c} cmp "1" "5"
+{output} = "cmp 1 5: {c}"
+
+{x} = "hello"
+{v} getvar "x"
+{output} = "getvar x: {v}"
+
+setvar "dynamic" "works!"
+{output} = "setvar: {dynamic}"

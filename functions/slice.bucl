@@ -1,0 +1,45 @@
+# slice — extract a sub-list of arguments (Python-style indices).
+#
+# Arguments: start (arg 0), end (arg 1), then one or more items.
+# Negative indices count from the end.
+# Returns: selected items joined with spaces.
+#
+# Usage:
+#   {res} slice 1 -1 "cut" "keep1" "keep2" "cut"   # {res} = "keep1 keep2"
+
+{_start} = {0}
+{_end} = {1}
+{_item_count} math "{argc}-2"
+
+# Resolve negative start index.
+{_s_neg} cmp {_start} "0"
+if {_s_neg} = "-1"
+	{_start} math "{_item_count}+{_start}"
+
+# Resolve negative end index.
+{_e_neg} cmp {_end} "0"
+if {_e_neg} = "-1"
+	{_end} math "{_item_count}+{_end}"
+
+{_result} = ""
+
+{r} repeat {_item_count}
+	{_i} math "{r/index}-1"
+	{_actual} math "{_i}+2"
+
+	# Check i >= start  →  cmp(i, start-1) == "1"
+	{_start1} math "{_start}-1"
+	{_ge_start} cmp {_i} {_start1}
+
+	# Check i < end  →  cmp(end, i) == "1"
+	{_lt_end} cmp {_end} {_i}
+
+	if {_ge_start} = "1"
+		if {_lt_end} = "1"
+			{_item} getvar {_actual}
+			if {_result} = ""
+				{_result} = {_item}
+			else
+				{_result} = "{_result} {_item}"
+
+{return} = {_result}

@@ -1,0 +1,22 @@
+# implode — join multiple strings with a separator.
+#
+# Arguments: separator (arg 0), then one or more items.
+# Returns: the joined string.
+#
+# Usage:
+#   {res} implode "," "one" "two" "three"   # {res} = "one,two,three"
+
+{_sep} = {0}
+{_n_items} math "{argc}-1"
+{_cmp} cmp {_n_items} "0"
+
+if {_cmp} = "0"
+	{return} = ""
+else
+	{_result} = {1}
+	{_remaining} math "{_n_items}-1"
+	{r} repeat {_remaining}
+		{_i} math "{r/index}+1"
+		{_item} getvar {_i}
+		{_result} = "{_result}{_sep}{_item}"
+	{return} = {_result}

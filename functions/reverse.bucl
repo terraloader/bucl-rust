@@ -1,0 +1,25 @@
+# reverse — reverse the characters in a string.
+#
+# Arguments: one or more strings (concatenated before reversing).
+# Returns: the reversed string.
+#
+# Usage:
+#   {res} reverse "Hello"          # {res} = "olleH"
+#   {res} reverse "Hello" " World" # {res} = "dlroW olleH"
+
+# Concatenate all arguments into {_text}.
+{_text} = ""
+{r} repeat {argc}
+	{_i} math "{r/index}-1"
+	{_arg} getvar {_i}
+	{_text} = "{_text}{_arg}"
+
+{_len} length {_text}
+{_result} = ""
+
+{r} repeat {_len}
+	{_i} math "{_len}-{r/index}"
+	{_char} substr {_i} 1 {_text}
+	{_result} = "{_result}{_char}"
+
+{return} = {_result}

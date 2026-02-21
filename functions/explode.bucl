@@ -1,0 +1,45 @@
+# explode — split a string on a separator.
+#
+# Arguments: separator (arg 0), text to split (arg 1).
+# Returns: number of parts (stored in target variable).
+# Side-effect: sets {target/0}, {target/1}, … to each part.
+#
+# Usage:
+#   {parts} explode "," "one,two,three"
+#   # {parts}   = "3"
+#   # {parts/0} = "one"
+#   # {parts/1} = "two"
+#   # {parts/2} = "three"
+
+{_sep} = {0}
+{_text} = {1}
+{_sep_len} length {_sep}
+{_text_len} length {_text}
+{_count} = "0"
+{_done} = "0"
+{_remaining} = {1}
+
+# We need at most text_len+1 iterations (one per separator + final piece).
+{_iters} math "{_text_len}+1"
+
+{r} repeat {_iters}
+	if {_done} = "0"
+		{_pos} strpos {_remaining} {_sep}
+		{_found} cmp {_pos} "-1"
+		if {_found} = "1"
+			# Separator found: slice off the part before it.
+			{_part} substr 0 {_pos} {_remaining}
+			{_key} = "return/{_count}"
+			setvar {_key} {_part}
+			{_count} math "{_count}+1"
+			{_after} math "{_pos}+{_sep_len}"
+			{_rem_len} length {_remaining}
+			{_remaining} substr {_after} {_rem_len} {_remaining}
+		else
+			# No more separators: store the final piece.
+			{_key} = "return/{_count}"
+			setvar {_key} {_remaining}
+			{_count} math "{_count}+1"
+			{_done} = "1"
+
+{return} = {_count}

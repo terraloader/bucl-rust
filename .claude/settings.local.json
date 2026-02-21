@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "WebFetch(domain:bucl.io)",
+      "Bash(cd /d/claude && cargo build 2>&1)",
+      "Bash(/d/claude/target/debug/bucl.exe:*)"
+    ]
+  }
+}

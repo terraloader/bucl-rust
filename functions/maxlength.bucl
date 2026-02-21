@@ -1,0 +1,19 @@
+# maxlength — return the character count of the longest argument.
+#
+# Arguments: one or more strings.
+# Returns: length of the longest one.
+#
+# Usage:
+#   {m} maxlength "ha" "llo"   # {m} = "3"
+
+{_max} = "0"
+
+{r} repeat {argc}
+	{_i} math "{r/index}-1"
+	{_item} getvar {_i}
+	{_len} length {_item}
+	{_gt} cmp {_len} {_max}
+	if {_gt} = "1"
+		{_max} = {_len}
+
+{return} = {_max}

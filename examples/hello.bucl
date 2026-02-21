@@ -1,0 +1,59 @@
+#Welcome to BUCL. The easiest programming language.
+{cool} = "easy"
+if {cool} = "easy"
+	{output} = "BUCL is very {cool}!"
+
+# ── Assignment & string interpolation ──────────────────────────────────────
+{name} = "World"
+{greeting} = "Hello, {name}!"
+{output} = {greeting}
+
+# ── Built-in functions ──────────────────────────────────────────────────────
+{len} length "Hello" " " "World"
+{output} = "length of 'Hello World' = {len}"
+
+{cnt} count "one" "two" "three"
+{output} = "count = {cnt}"
+
+{ml} maxlength "short" "much longer" "mid"
+{output} = "maxlength = {ml}"
+
+{m} math "(10+5)*2"
+{output} = "math result = {m}"
+
+{rev} reverse "dlroW olleH"
+{output} = "reversed = {rev}"
+
+{sub} substr 0 5 "Hello, World!"
+{output} = "substr(0,5) = {sub}"
+
+# ── repeat ──────────────────────────────────────────────────────────────────
+{r} repeat 3
+	{output} = "repeat iteration {r/index} of 3"
+
+# ── each ────────────────────────────────────────────────────────────────────
+{e} each "Alice" "Bob" "Charlie"
+	{output} = "Hello, {e/value}!"
+
+# ── if / elseif / else ───────────────────────────────────────────────────────
+{x} = "b"
+if {x} = "a"
+	{output} = "x is a"
+elseif {x} = "b"
+	{output} = "x is b"
+else
+	{output} = "x is something else"
+
+# ── implode / explode ────────────────────────────────────────────────────────
+{joined} implode "-" "one" "two" "three"
+{output} = "implode: {joined}"
+
+{parts} explode "-" "one-two-three"
+{output} = "explode count: {parts}"
+{output} = "part 0: {parts/0}"
+{output} = "part 1: {parts/1}"
+{output} = "part 2: {parts/2}"
+
+# ── slice ────────────────────────────────────────────────────────────────────
+{s} slice 1 -1 "cut" "keep1" "keep2" "cut"
+{output} = "slice(1,-1): {s}"

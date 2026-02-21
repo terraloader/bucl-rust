@@ -1,0 +1,12 @@
+[package]
+name = "bucl"
+version = "0.1.0"
+edition = "2021"
+description = "Parser and executor for the BUCL programming language"
+
+[[bin]]
+name = "bucl"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.8"
