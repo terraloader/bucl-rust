@@ -3,6 +3,7 @@ name = "bucl"
 version = "0.1.0"
 edition = "2021"
 description = "Parser and executor for the BUCL programming language"
+license = "MPL-2.0"
 
 [[bin]]
 name = "bucl"
