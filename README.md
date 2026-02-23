@@ -72,6 +72,40 @@ Use `=` to assign a value. Multiple arguments are concatenated.
 {message} = "Hello, " {name} "!"
 ```
 
+Every assignment automatically maintains two sub-variables:
+
+| Sub-variable   | Value                                                |
+|----------------|------------------------------------------------------|
+| `{var/length}` | Character count of the stored value                  |
+| `{var/count}`  | Number of arguments (`"1"` for single, `"N"` for multi) |
+
+When a variable holds a **single string**, `{var/N}` returns the character at position N (0-based):
+
+```
+{word} = "hello"
+{output} = {word/0}       # h
+{output} = {word/4}       # o
+{output} = {word/length}  # 5
+{output} = {word/count}   # 1
+```
+
+When assigned **multiple strings**, each is stored separately as `{var/0}`, `{var/1}`, … and `{var}` holds the concatenation:
+
+```
+{parts} = "hello" "world"
+{output} = {parts/0}      # hello
+{output} = {parts/1}      # world
+{output} = {parts}        # helloworld
+{output} = {parts/count}  # 2
+```
+
+Variable names can embed other variables using `{var/{i}}` — the inner reference is resolved at runtime:
+
+```
+{i} = "1"
+{output} = {parts/{i}}    # world
+```
+
 ### String Interpolation
 
 Inside double-quoted strings, variable references are expanded automatically.
@@ -182,11 +216,11 @@ if {n} > "10"
 | `random`   | `{t} random min max`                 | Random integer in range [min, max]                    |
 | `readfile` | `{t} readfile path`                  | Read file contents into variable                      |
 | `writefile`| `writefile path content`             | Write content to file                                 |
-| `getvar`   | `{t} getvar "name"`                  | Get variable by computed name                         |
-| `setvar`   | `setvar "name" value`                | Set variable by computed name                         |
 | `if`       | `if val op val` + block              | Conditional block (`=` `!=` `>` `<` `>=` `<=`)        |
 | `repeat`   | `{t} repeat N` + block               | Loop N times                                          |
 | `each`     | `{t} each arg ...` + block           | Iterate over arguments                                |
+
+> **`getvar` / `setvar`** exist as low-level built-ins but are rarely needed in application scripts. Use nested variable references (`{var/{i}}`) instead — they resolve at runtime and cover most dynamic-lookup cases. `getvar` and `setvar` are primarily used inside BUCL library functions (e.g. `implode`) that need to walk argument lists by computed index.
 
 ---
 
@@ -260,11 +294,16 @@ writefile "hello.txt" "Hello from BUCL\n"
 
 ### Dynamic Variable Names
 
+Variable names can embed other variables — the inner part is resolved at runtime:
+
 ```
-{key} = "color"
-setvar {key} "blue"
-{val} getvar {key}
-{output} = "color is {val}"
+{parts} = "red" "green" "blue"
+{i} = "2"
+{output} = "color: {parts/{i}}"   # color: blue
+
+# Write to a computed sub-variable
+{parts/{i}} = "purple"
+{output} = "color: {parts/{i}}"   # color: purple
 ```
 
 ---
