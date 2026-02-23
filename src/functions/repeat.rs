@@ -1,11 +1,17 @@
 /// `repeat` — execute an indented block a fixed number of times.
 ///
-/// The target variable is used as a namespace prefix for the loop counter.
-/// Inside the block, `{<target>/index}` holds the 1-based iteration number.
+/// The target variable is populated before iteration begins:
+///
+/// - `{r}`        — the repeat count.
+/// - `{r/count}`  — same as `{r}`.
+/// - `{r/length}` — character length of the count string.
+///
+/// During each iteration one extra sub-variable is updated:
+/// - `{r/index}` — 1-based iteration number.
 ///
 /// ```bucl
 /// {r} repeat 5
-///     {output} = "Iteration {r/index} of 5"
+///     {output} = "Iteration {r/index} of {r/count}"
 /// ```
 ///
 /// If no target is given, the prefix defaults to `r`.
@@ -35,9 +41,18 @@ impl BuclFunction for Repeat {
             BuclError::RuntimeError(format!("repeat: '{}' is not a valid count", count_str))
         })?;
 
+        // Populate the target variable with metadata before iterating so the
+        // full structure is available inside the first block execution.
+        evaluator.set_var(prefix, count.to_string());
+        evaluator
+            .variables
+            .insert(format!("{}/count", prefix), count.to_string());
+
         if let Some(block) = block {
             for i in 0..count {
-                evaluator.set_var(&format!("{}/index", prefix), (i + 1).to_string());
+                evaluator
+                    .variables
+                    .insert(format!("{}/index", prefix), (i + 1).to_string());
                 evaluator.evaluate_statements(block)?;
             }
         }

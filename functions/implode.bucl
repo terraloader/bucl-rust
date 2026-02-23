@@ -8,9 +8,8 @@
 
 {_sep} = {0}
 {_n_items} math "{argc}-1"
-{_cmp} cmp {_n_items} "0"
 
-if {_cmp} = "0"
+if {_n_items} = "0"
 	{return} = ""
 else
 	{_result} = {1}

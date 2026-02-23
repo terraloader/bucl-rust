@@ -12,13 +12,11 @@
 {_item_count} math "{argc}-2"
 
 # Resolve negative start index.
-{_s_neg} cmp {_start} "0"
-if {_s_neg} = "-1"
+if {_start} < "0"
 	{_start} math "{_item_count}+{_start}"
 
 # Resolve negative end index.
-{_e_neg} cmp {_end} "0"
-if {_e_neg} = "-1"
+if {_end} < "0"
 	{_end} math "{_item_count}+{_end}"
 
 {_result} = ""
@@ -27,15 +25,8 @@ if {_e_neg} = "-1"
 	{_i} math "{r/index}-1"
 	{_actual} math "{_i}+2"
 
-	# Check i >= start  →  cmp(i, start-1) == "1"
-	{_start1} math "{_start}-1"
-	{_ge_start} cmp {_i} {_start1}
-
-	# Check i < end  →  cmp(end, i) == "1"
-	{_lt_end} cmp {_end} {_i}
-
-	if {_ge_start} = "1"
-		if {_lt_end} = "1"
+	if {_i} >= {_start}
+		if {_i} < {_end}
 			{_item} getvar {_actual}
 			if {_result} = ""
 				{_result} = {_item}

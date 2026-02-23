@@ -38,7 +38,6 @@ pub trait BuclFunction: Send + Sync {
 // ---------------------------------------------------------------------------
 
 pub mod assign;    // =
-pub mod cmp;       // cmp — numeric comparison returning "1" / "-1" / "0"
 pub mod count;     // count
 pub mod each;      // each
 pub mod getvar;    // getvar — read a variable by computed name
@@ -64,7 +63,6 @@ pub mod writefile; // writefile
 /// runtime — no registration needed here.
 pub fn register_all(eval: &mut Evaluator) {
     assign::register(eval);
-    cmp::register(eval);
     count::register(eval);
     each::register(eval);
     getvar::register(eval);

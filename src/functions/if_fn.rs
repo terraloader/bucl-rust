@@ -1,21 +1,66 @@
 /// `if` / `elseif` / `else` — conditional execution.
 ///
+/// Condition syntax: `<lhs> <op> <rhs>`
+///
+/// Supported operators:
+/// - `=`  — string equality
+/// - `!=` — string inequality
+/// - `>`  — greater than
+/// - `<`  — less than
+/// - `>=` — greater than or equal
+/// - `<=` — less than or equal
+///
+/// For `>`, `<`, `>=`, `<=`: if both sides parse as numbers the comparison is
+/// numeric (integer or decimal); otherwise it falls back to lexicographic
+/// string comparison.
+///
 /// ```bucl
 /// if {x} = "hello"
 ///     {output} = "Got hello"
-/// elseif {x} = "world"
-///     {output} = "Got world"
+/// elseif {x} > "10"
+///     {output} = "Got a number bigger than 10"
 /// else
 ///     {output} = "Got something else"
 /// ```
 ///
-/// The condition is always `<lhs> = <rhs>` (string equality).
 /// `elseif` shares the same implementation as `if`.
 /// `else` simply runs its block unconditionally.
 use crate::ast::Statement;
 use crate::error::Result;
 use crate::evaluator::Evaluator;
 use crate::functions::BuclFunction;
+
+// ---------------------------------------------------------------------------
+// Condition evaluation
+// ---------------------------------------------------------------------------
+
+fn evaluate_condition(lhs: &str, op: &str, rhs: &str) -> bool {
+    match op {
+        "=" => lhs == rhs,
+        "!=" => lhs != rhs,
+        ">" | "<" | ">=" | "<=" => {
+            // Prefer numeric comparison; fall back to lexicographic.
+            if let (Ok(l), Ok(r)) = (lhs.parse::<f64>(), rhs.parse::<f64>()) {
+                match op {
+                    ">"  => l > r,
+                    "<"  => l < r,
+                    ">=" => l >= r,
+                    "<=" => l <= r,
+                    _    => unreachable!(),
+                }
+            } else {
+                match op {
+                    ">"  => lhs > rhs,
+                    "<"  => lhs < rhs,
+                    ">=" => lhs >= rhs,
+                    "<=" => lhs <= rhs,
+                    _    => unreachable!(),
+                }
+            }
+        }
+        _ => false,
+    }
+}
 
 // ---------------------------------------------------------------------------
 // if / elseif
@@ -32,8 +77,10 @@ impl BuclFunction for IfFn {
         block: Option<&[Statement]>,
         continuation: Option<&Statement>,
     ) -> Result<Option<String>> {
-        // Expected args layout: [lhs, "=", rhs]
-        let condition = matches!(args.as_slice(), [lhs, op, rhs] if op == "=" && lhs == rhs);
+        let condition = match args.as_slice() {
+            [lhs, op, rhs] => evaluate_condition(lhs, op, rhs),
+            _ => false,
+        };
 
         if condition {
             if let Some(block) = block {

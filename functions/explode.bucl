@@ -25,20 +25,17 @@
 {r} repeat {_iters}
 	if {_done} = "0"
 		{_pos} strpos {_remaining} {_sep}
-		{_found} cmp {_pos} "-1"
-		if {_found} = "1"
+		if {_pos} > "-1"
 			# Separator found: slice off the part before it.
 			{_part} substr 0 {_pos} {_remaining}
-			{_key} = "return/{_count}"
-			setvar {_key} {_part}
+			{return/{_count}} = {_part}
 			{_count} math "{_count}+1"
 			{_after} math "{_pos}+{_sep_len}"
 			{_rem_len} length {_remaining}
 			{_remaining} substr {_after} {_rem_len} {_remaining}
 		else
 			# No more separators: store the final piece.
-			{_key} = "return/{_count}"
-			setvar {_key} {_remaining}
+			{return/{_count}} = {_remaining}
 			{_count} math "{_count}+1"
 			{_done} = "1"
 

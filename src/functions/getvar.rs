@@ -31,7 +31,7 @@ impl BuclFunction for GetVar {
         let name = args
             .first()
             .ok_or_else(|| BuclError::RuntimeError("getvar: requires a variable name".into()))?;
-        Ok(Some(evaluator.get_var(name).to_string()))
+        Ok(Some(evaluator.resolve_var(name)))
     }
 }
 

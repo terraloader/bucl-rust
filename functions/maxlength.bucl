@@ -12,8 +12,7 @@
 	{_i} math "{r/index}-1"
 	{_item} getvar {_i}
 	{_len} length {_item}
-	{_gt} cmp {_len} {_max}
-	if {_gt} = "1"
+	if {_len} > {_max}
 		{_max} = {_len}
 
 {return} = {_max}

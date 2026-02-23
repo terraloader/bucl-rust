@@ -37,16 +37,83 @@ impl Evaluator {
     // -----------------------------------------------------------------------
 
     /// Store a value.  Writing to `output` also prints to stdout.
+    ///
+    /// For **root variables** (no `/` in the name) two metadata sub-variables
+    /// are maintained automatically:
+    /// - `{name/count}`  — number of string arguments that were assigned
+    ///   (always `"1"` here; `assign` overrides this for multi-arg calls).
+    /// - `{name/length}` — total character length of the stored value.
+    ///
+    /// Sub-variables (names that contain `/`) are stored as-is with no
+    /// automatic metadata so that internal slots like `{r/index}` stay clean.
     pub fn set_var(&mut self, name: &str, value: String) {
         if name == "output" {
             println!("{}", value);
         }
+        // Auto-maintain metadata only for root variables.
+        if !name.contains('/') {
+            let length = value.chars().count();
+            self.variables.insert(format!("{}/length", name), length.to_string());
+            self.variables.insert(format!("{}/count", name), "1".to_string());
+        }
         self.variables.insert(name.to_string(), value);
     }
 
-    /// Retrieve a value; returns `""` for undefined variables.
-    pub fn get_var(&self, name: &str) -> &str {
-        self.variables.get(name).map(String::as_str).unwrap_or("")
+    /// Resolve a variable name, with automatic index-based fallback.
+    ///
+    /// Lookup order for `"var/N"` (where N is a non-negative integer):
+    ///
+    /// 1. **Direct lookup** — returns the value if `{var/N}` is explicitly set.
+    ///    This covers `{r/index}`, `{e/value}`, `{parts/0}`, `{myvar/mysub}`, …
+    ///
+    /// 2. **Count-gated index fallback** — reads `{var/count}` to decide the
+    ///    indexing mode:
+    ///    - `count == 1` → **character indexing**: returns the Nth character of
+    ///      `{var}`.  This is the single-string case (`{word} = "hello"`).
+    ///    - `count > 1` → the indexed strings are already stored explicitly;
+    ///      if the direct lookup above failed the index is out of range →
+    ///      returns `""`.
+    ///
+    /// For non-numeric suffixes (e.g. `{r/index}`, `{myvar/label}`) step 2 is
+    /// skipped and the result is `""` when the direct lookup misses.
+    pub fn resolve_var(&self, name: &str) -> String {
+        // 0. If the name itself contains nested variable refs (e.g. "var/{key}"),
+        //    resolve them first via interpolation, then look up the resulting name.
+        if name.contains('{') {
+            let resolved = self.interpolate(name);
+            return self.resolve_var(&resolved);
+        }
+
+        // 1. Direct lookup.
+        if let Some(v) = self.variables.get(name) {
+            return v.clone();
+        }
+
+        // 2. Index fallback — only for numeric suffixes after the first '/'.
+        if let Some(slash) = name.find('/') {
+            let parent = &name[..slash];
+            let index_str = &name[slash + 1..];
+            if let Ok(idx) = index_str.parse::<usize>() {
+                let count: usize = self
+                    .variables
+                    .get(&format!("{}/count", parent))
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+
+                if count == 1 {
+                    // Single-string variable: return the character at position idx.
+                    if let Some(value) = self.variables.get(parent) {
+                        if let Some(ch) = value.chars().nth(idx) {
+                            return ch.to_string();
+                        }
+                    }
+                }
+                // count > 1: strings were stored explicitly; missing index → "".
+                // count == 0: variable not set → "".
+            }
+        }
+
+        String::new()
     }
 
     // -----------------------------------------------------------------------
@@ -64,15 +131,20 @@ impl Evaluator {
             }
             let mut var_name = String::new();
             let mut closed = false;
+            let mut depth = 1usize;
             for ch in chars.by_ref() {
-                if ch == '}' {
-                    closed = true;
-                    break;
+                match ch {
+                    '{' => { depth += 1; var_name.push('{'); }
+                    '}' => {
+                        depth -= 1;
+                        if depth == 0 { closed = true; break; }
+                        var_name.push('}');
+                    }
+                    _ => var_name.push(ch),
                 }
-                var_name.push(ch);
             }
             if closed {
-                result.push_str(self.get_var(&var_name));
+                result.push_str(&self.resolve_var(&var_name));
             } else {
                 result.push('{');
                 result.push_str(&var_name);
@@ -89,7 +161,7 @@ impl Evaluator {
     pub fn eval_param(&self, param: &Param) -> String {
         match param {
             Param::Quoted(s) => self.interpolate(s),
-            Param::Variable(name) => self.get_var(name).to_string(),
+            Param::Variable(name) => self.resolve_var(name),
             Param::Bare(s) => s.clone(),
         }
     }
@@ -112,16 +184,21 @@ impl Evaluator {
     pub fn evaluate_statement(&mut self, stmt: &Statement) -> Result<()> {
         let args = self.eval_params(&stmt.args);
 
+        // Resolve target name — supports nested variable refs like {var/{key}}.
+        let resolved_target: Option<String> = stmt.target.as_ref().map(|t| {
+            if t.contains('{') { self.interpolate(t) } else { t.clone() }
+        });
+
         // 1. Try built-in Rust functions first.
         if let Some(func) = self.functions.get(&stmt.function).cloned() {
             let result = func.call(
                 self,
-                stmt.target.as_deref(),
+                resolved_target.as_deref(),
                 args,
                 stmt.block.as_deref(),
                 stmt.continuation.as_deref(),
             )?;
-            if let (Some(target), Some(value)) = (&stmt.target, result) {
+            if let (Some(target), Some(value)) = (&resolved_target, result) {
                 self.set_var(target, value);
             }
             return Ok(());
@@ -130,10 +207,10 @@ impl Evaluator {
         // 2. Fall back to a dynamically loaded .bucl function file.
         let result = self.call_bucl_function(
             &stmt.function.clone(),
-            stmt.target.as_deref(),
+            resolved_target.as_deref(),
             args,
         )?;
-        if let (Some(target), Some(value)) = (&stmt.target, result) {
+        if let (Some(target), Some(value)) = (&resolved_target, result) {
             self.set_var(target, value);
         }
 

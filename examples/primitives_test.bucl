@@ -1,15 +1,23 @@
 {p} strpos "hello world" "world"
 {output} = "strpos: {p}"
 
-{c} cmp "9" "3"
-{output} = "cmp 9 3: {c}"
-
-{c} cmp "1" "5"
-{output} = "cmp 1 5: {c}"
+# Comparison operators in if
+if "9" > "3"
+	{output} = "9 > 3: true"
+if "1" < "5"
+	{output} = "1 < 5: true"
+if "5" >= "5"
+	{output} = "5 >= 5: true"
+if "4" <= "5"
+	{output} = "4 <= 5: true"
+if "3" != "4"
+	{output} = "3 != 4: true"
 
 {x} = "hello"
 {v} getvar "x"
 {output} = "getvar x: {v}"
 
-setvar "dynamic" "works!"
-{output} = "setvar: {dynamic}"
+# nested variable ref: {parts/{i}} where {i} is computed at runtime
+{parts} = "alpha" "beta" "gamma"
+{i} = "1"
+{output} = "parts/{i} = {parts/{i}}"

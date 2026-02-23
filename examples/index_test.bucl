@@ -1,0 +1,24 @@
+# Single string: {var/N} = Nth character
+{word} = "hello"
+{output} = {word/0}
+{output} = {word/1}
+{output} = {word/4}
+
+# Works inside interpolated strings too
+{output} = "first char of 'hello': {word/0}"
+
+# Multi-string: {var/N} = Nth original string
+{pair} = "hello" "world"
+{output} = {pair/0}
+{output} = {pair/1}
+
+# {pair} itself is the concatenation
+{output} = "concatenated: {pair}"
+
+# Character indexing still works on the concatenation
+{output} = "char 5 of 'helloworld': {pair/5}"
+
+# Works with variables too
+{greeting} = "Good" " " "morning"
+{output} = {greeting/0}
+{output} = {greeting/2}

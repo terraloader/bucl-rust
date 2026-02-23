@@ -40,11 +40,18 @@ pub fn tokenize_line(line: &str) -> Result<Option<Line>> {
         }
 
         if c == '{' {
-            chars.next(); // consume '{'
+            chars.next(); // consume opening '{'
             let mut name = String::new();
+            let mut depth = 1usize;
             loop {
                 match chars.next() {
-                    Some('}') | None => break,
+                    None => break,
+                    Some('{') => { depth += 1; name.push('{'); }
+                    Some('}') => {
+                        depth -= 1;
+                        if depth == 0 { break; }
+                        name.push('}');
+                    }
                     Some(ch) => name.push(ch),
                 }
             }
