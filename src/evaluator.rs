@@ -144,7 +144,7 @@ impl Evaluator {
                 }
             }
             if closed {
-                result.push_str(&self.resolve_var(&var_name));
+                result.push_str(&self.interpolate_var(&var_name));
             } else {
                 result.push('{');
                 result.push_str(&var_name);
@@ -152,6 +152,52 @@ impl Evaluator {
         }
 
         result
+    }
+
+    /// Resolve a variable reference inside a quoted string.
+    ///
+    /// For **root variables** (no `/` in the resolved name) with `count > 1`
+    /// (i.e. variables that hold multiple strings), the elements are joined
+    /// with a single space and returned as one string.  This means:
+    ///
+    /// ```bucl
+    /// {words} = "hello" "world"
+    /// {output} = "Say: {words}"   # → "Say: hello world"
+    /// ```
+    ///
+    /// For single-string variables, sub-index accesses, and nested variable
+    /// references the behaviour is identical to `resolve_var`.
+    fn interpolate_var(&self, name: &str) -> String {
+        // Resolve any nested variable refs inside the name first.
+        let actual_name = if name.contains('{') {
+            self.interpolate(name)
+        } else {
+            name.to_string()
+        };
+
+        // Only root variables (no `/`) can be multi-string arrays.
+        if !actual_name.contains('/') {
+            let count: usize = self
+                .variables
+                .get(&format!("{}/count", actual_name))
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+
+            if count > 1 {
+                let parts: Vec<String> = (0..count)
+                    .map(|i| {
+                        self.variables
+                            .get(&format!("{}/{}", actual_name, i))
+                            .cloned()
+                            .unwrap_or_default()
+                    })
+                    .collect();
+                return parts.join(" ");
+            }
+        }
+
+        // Single-string variable, sub-index access, or not set — normal lookup.
+        self.resolve_var(&actual_name)
     }
 
     // -----------------------------------------------------------------------
@@ -166,8 +212,58 @@ impl Evaluator {
         }
     }
 
+    /// Evaluate a single parameter, potentially expanding it into several
+    /// string arguments.
+    ///
+    /// A bare `{var}` reference where `var` has `count > 1` (a multi-string
+    /// array) is **expanded** into one argument per element.  This mirrors
+    /// the way plain spaces separate arguments on a command line:
+    ///
+    /// ```bucl
+    /// {words} = "hello" "world"
+    /// {joined} implode "," {words}   # same as: implode "," "hello" "world"
+    /// ```
+    ///
+    /// Quoted strings and bare words always produce exactly one argument.
+    /// Sub-index references (`{var/0}`) also produce one argument.
+    fn expand_param(&self, param: &Param) -> Vec<String> {
+        if let Param::Variable(name) = param {
+            // Resolve any nested variable refs in the name to find the actual
+            // variable being referenced.
+            let actual_name = if name.contains('{') {
+                self.interpolate(name)
+            } else {
+                name.clone()
+            };
+
+            // Only root variables (no `/`) can be multi-string arrays.
+            if !actual_name.contains('/') {
+                let count: usize = self
+                    .variables
+                    .get(&format!("{}/count", actual_name))
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+
+                if count > 1 {
+                    return (0..count)
+                        .map(|i| {
+                            self.variables
+                                .get(&format!("{}/{}", actual_name, i))
+                                .cloned()
+                                .unwrap_or_default()
+                        })
+                        .collect();
+                }
+            }
+        }
+
+        // Everything else (quoted strings, bare words, single-string vars,
+        // sub-index vars) evaluates to exactly one argument.
+        vec![self.eval_param(param)]
+    }
+
     pub fn eval_params(&self, params: &[Param]) -> Vec<String> {
-        params.iter().map(|p| self.eval_param(p)).collect()
+        params.iter().flat_map(|p| self.expand_param(p)).collect()
     }
 
     // -----------------------------------------------------------------------

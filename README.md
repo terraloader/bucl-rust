@@ -11,6 +11,7 @@ BUCL is a simple, text-based scripting language implemented in Rust. It is desig
 - [Language Reference](#language-reference)
   - [Variables](#variables)
   - [Assignment](#assignment)
+  - [Array Variables](#array-variables--string-vs-argument-context)
   - [String Interpolation](#string-interpolation)
   - [Comments](#comments)
   - [Output](#output)
@@ -89,13 +90,12 @@ When a variable holds a **single string**, `{var/N}` returns the character at po
 {output} = {word/count}   # 1
 ```
 
-When assigned **multiple strings**, each is stored separately as `{var/0}`, `{var/1}`, … and `{var}` holds the concatenation:
+When assigned **multiple strings**, each is stored separately as `{var/0}`, `{var/1}`, … and `{var/count}` holds the number of elements:
 
 ```
 {parts} = "hello" "world"
 {output} = {parts/0}      # hello
 {output} = {parts/1}      # world
-{output} = {parts}        # helloworld
 {output} = {parts/count}  # 2
 ```
 
@@ -105,6 +105,32 @@ Variable names can embed other variables using `{var/{i}}` — the inner referen
 {i} = "1"
 {output} = {parts/{i}}    # world
 ```
+
+### Array Variables — String vs. Argument Context
+
+A variable assigned multiple strings behaves differently depending on where it appears:
+
+**Inside a quoted string** — elements are joined with a space and form a single string:
+
+```
+{colors} = "red" "green" "blue"
+{output} = "My colors: {colors}"
+# prints: My colors: red green blue
+```
+
+**As a direct argument** — elements expand into separate arguments, exactly as if you had written each one out individually:
+
+```
+{colors} = "red" "green" "blue"
+{joined} implode "," {colors}      # same as: implode "," "red" "green" "blue"
+{output} = {joined}
+# prints: red,green,blue
+
+{e} each {colors}                  # same as: each "red" "green" "blue"
+    {output} = "color: {e/value}"
+```
+
+This auto-expansion applies only to the plain `{var}` reference of a root variable. Indexed accesses such as `{var/0}` or `{var/{i}}` always resolve to a single element.
 
 ### String Interpolation
 
@@ -220,7 +246,7 @@ if {n} > "10"
 | `repeat`   | `{t} repeat N` + block               | Loop N times                                          |
 | `each`     | `{t} each arg ...` + block           | Iterate over arguments                                |
 
-> **`getvar` / `setvar`** exist as low-level built-ins but are rarely needed in application scripts. Use nested variable references (`{var/{i}}`) instead — they resolve at runtime and cover most dynamic-lookup cases. `getvar` and `setvar` are primarily used inside BUCL library functions (e.g. `implode`) that need to walk argument lists by computed index.
+> **`getvar` / `setvar`** are low-level built-ins for accessing or writing a variable whose name is computed at runtime. They are rarely needed in application scripts: nested variable references (`{var/{i}}`) cover most dynamic-lookup cases, and array variables now auto-expand when used as arguments, so walking argument lists by index can be done with `{{_i}}` (a variable whose value is the index).
 
 ---
 
@@ -282,6 +308,22 @@ The bundled `functions/` directory includes:
 
 {joined} implode ", " "alpha" "beta" "gamma"
 {output} = {joined}
+```
+
+### Array Auto-Expansion
+
+```
+{words} = "alpha" "beta" "gamma"
+
+# Inside a string: joined with spaces → one argument
+{output} = "Words: {words}"        # Words: alpha beta gamma
+
+# As a direct argument: expands to separate args → multiple arguments
+{joined} implode ", " {words}      # same as: implode ", " "alpha" "beta" "gamma"
+{output} = {joined}                # alpha, beta, gamma
+
+{e} each {words}
+    {output} = "- {e/value}"
 ```
 
 ### File I/O

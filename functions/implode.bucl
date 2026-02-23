@@ -5,6 +5,10 @@
 #
 # Usage:
 #   {res} implode "," "one" "two" "three"   # {res} = "one,two,three"
+#
+#   {words} = "one" "two" "three"
+#   {res} implode "," {words}               # same result — {words} auto-expands
+#                                           # to its elements as separate args
 
 {_sep} = {0}
 {_n_items} math "{argc}-1"
@@ -16,6 +20,6 @@ else
 	{_remaining} math "{_n_items}-1"
 	{r} repeat {_remaining}
 		{_i} math "{r/index}+1"
-		{_item} getvar {_i}
+		{_item} = {{_i}}
 		{_result} = "{_result}{_sep}{_item}"
 	{return} = {_result}

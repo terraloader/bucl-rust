@@ -1,0 +1,36 @@
+# implode_sample.bucl — demonstrates how array variables behave differently
+# depending on whether they are used inside a quoted string or as a direct
+# argument on the command line.
+#
+# Key rules:
+#   - Inside a quoted string  → elements are joined with a space (one argument)
+#   - As a direct argument    → elements expand into separate arguments
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Set up an array variable
+{colors} = "red" "green" "blue"
+
+# ── Inside a string: elements are joined with spaces ─────────────────────────
+{output} = "Colors: {colors}"
+# prints: Colors: red green blue
+
+# ── As a direct argument: expands to multiple arguments ──────────────────────
+# implode receives "," "red" "green" "blue"  (4 separate arguments)
+{joined} implode "," {colors}
+{output} = "Joined: {joined}"
+# prints: Joined: red,green,blue
+
+# Each element is available by index:
+{output} = "First:  {colors/0}"
+{output} = "Second: {colors/1}"
+{output} = "Third:  {colors/2}"
+{output} = "Count:  {colors/count}"
+
+# ── Passing an array to each: auto-expand works the same way ─────────────────
+{e} each {colors}
+	{output} = "  color: {e/value}"
+
+# ── Inline literals still work as before ─────────────────────────────────────
+{joined2} implode " - " "alpha" "beta" "gamma"
+{output} = "Inline: {joined2}"
+# prints: Inline: alpha - beta - gamma

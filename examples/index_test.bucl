@@ -12,10 +12,11 @@
 {output} = {pair/0}
 {output} = {pair/1}
 
-# {pair} itself is the concatenation
-{output} = "concatenated: {pair}"
+# Inside a string, a multi-string variable is imploded with spaces
+{output} = "as string: {pair}"
+# prints: as string: hello world
 
-# Character indexing still works on the concatenation
+# Character indexing still works on the concatenated value via direct subindex
 {output} = "char 5 of 'helloworld': {pair/5}"
 
 # Works with variables too
