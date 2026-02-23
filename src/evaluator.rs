@@ -155,7 +155,7 @@ impl Evaluator {
                 }
             }
             if closed {
-                result.push_str(&self.resolve_var(&var_name));
+                result.push_str(&self.resolve_var_for_interpolation(&var_name));
             } else {
                 result.push('{');
                 result.push_str(&var_name);
@@ -163,6 +163,49 @@ impl Evaluator {
         }
 
         result
+    }
+
+    /// Resolve a variable reference that appears **inside a quoted string**.
+    ///
+    /// For root-level variables (no `/` after inner resolution) that hold
+    /// **multiple strings** (`{var/count} > 1`), the elements are joined with
+    /// a single space and returned as one string — matching the "auto-implode
+    /// in string context" rule.
+    ///
+    /// For everything else (single-string variables, sub-variable paths,
+    /// nested references that resolve to a sub-path) the call falls through
+    /// to the normal [`resolve_var`] logic.
+    fn resolve_var_for_interpolation(&self, name: &str) -> String {
+        // First resolve any nested variable refs inside the name itself
+        // (e.g. "parts/{i}" → "parts/2").
+        let resolved_name = if name.contains('{') {
+            self.interpolate(name)
+        } else {
+            name.to_string()
+        };
+
+        // Only apply auto-implode for root-level variable names (no '/').
+        if !resolved_name.contains('/') {
+            let count: usize = self
+                .variables
+                .get(&format!("{}/count", resolved_name))
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+
+            if count > 1 {
+                let parts: Vec<String> = (0..count)
+                    .map(|i| {
+                        self.variables
+                            .get(&format!("{}/{}", resolved_name, i))
+                            .cloned()
+                            .unwrap_or_default()
+                    })
+                    .collect();
+                return parts.join(" ");
+            }
+        }
+
+        self.resolve_var(&resolved_name)
     }
 
     // -----------------------------------------------------------------------
@@ -177,8 +220,62 @@ impl Evaluator {
         }
     }
 
+    /// Evaluate a list of parameters into a flat `Vec<String>`.
+    ///
+    /// **Array expansion rule** — when a bare variable reference (`{var}`, not
+    /// inside a quoted string) resolves to a multi-arg variable
+    /// (`{var/count} > 1`), it is automatically **expanded** into as many
+    /// separate arguments as there are stored elements.  This mirrors the
+    /// behaviour of shell word splitting: the elements are *individually*
+    /// passed to the callee rather than concatenated.
+    ///
+    /// ```bucl
+    /// {colors} = "red" "green" "blue"
+    /// # Direct use → three separate arguments:
+    /// {joined} implode " / " {colors}   # same as implode " / " "red" "green" "blue"
+    /// # Inside a string → single space-joined value (handled by interpolate):
+    /// {output} = "colors: {colors}"     # prints: colors: red green blue
+    /// ```
     pub fn eval_params(&self, params: &[Param]) -> Vec<String> {
-        params.iter().map(|p| self.eval_param(p)).collect()
+        let mut result = Vec::new();
+        for p in params {
+            match p {
+                Param::Variable(name) => {
+                    // Resolve any nested refs inside the name first.
+                    let resolved_name = if name.contains('{') {
+                        self.interpolate(name)
+                    } else {
+                        name.clone()
+                    };
+
+                    // Only expand root-level variable names (no '/').
+                    if !resolved_name.contains('/') {
+                        let count: usize = self
+                            .variables
+                            .get(&format!("{}/count", resolved_name))
+                            .and_then(|s| s.parse().ok())
+                            .unwrap_or(0);
+
+                        if count > 1 {
+                            // Expand to individual elements.
+                            for i in 0..count {
+                                result.push(
+                                    self.variables
+                                        .get(&format!("{}/{}", resolved_name, i))
+                                        .cloned()
+                                        .unwrap_or_default(),
+                                );
+                            }
+                            continue;
+                        }
+                    }
+
+                    result.push(self.resolve_var(name));
+                }
+                _ => result.push(self.eval_param(p)),
+            }
+        }
+        result
     }
 
     // -----------------------------------------------------------------------
@@ -295,9 +392,24 @@ impl Evaluator {
         crate::functions::register_all(&mut child);
 
         // Inject call arguments — bypass set_var to avoid spurious output.
-        child.variables.insert("argc".to_string(), args.len().to_string());
+        let argc = args.len();
+        child.variables.insert("argc".to_string(), argc.to_string());
         for (i, arg) in args.iter().enumerate() {
             child.variables.insert(i.to_string(), arg.clone());
+        }
+        // Also expose arguments as a structured {args} variable so that BUCL
+        // functions can use {args/{i}} for dynamic positional access without
+        // needing the `getvar` built-in.
+        child.variables.insert("args".to_string(), args.join(""));
+        child
+            .variables
+            .insert("args/count".to_string(), argc.to_string());
+        let args_length: usize = args.iter().map(|s| s.chars().count()).sum();
+        child
+            .variables
+            .insert("args/length".to_string(), args_length.to_string());
+        for (i, arg) in args.iter().enumerate() {
+            child.variables.insert(format!("args/{}", i), arg.clone());
         }
         if let Some(t) = target {
             child.variables.insert("target".to_string(), t.to_string());

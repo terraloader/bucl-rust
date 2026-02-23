@@ -54,6 +54,22 @@ else
 {output} = "part 1: {parts/1}"
 {output} = "part 2: {parts/2}"
 
+# ── array variable expansion ─────────────────────────────────────────────────
+# A variable holding multiple strings behaves differently depending on context.
+{words} = "alpha" "beta" "gamma"
+
+# Inside a string: elements are joined with spaces → one argument.
+{output} = "in string: {words}"
+
+# Direct use (outside a string): expands to multiple arguments,
+# each element becoming a separate argument — exactly like listing them by hand.
+{joined2} implode " / " {words}
+{output} = "as args to implode: {joined2}"
+
+# The expansion also works with built-ins such as each:
+{e} each {words}
+	{output} = "each item: {e/value}"
+
 # ── slice ────────────────────────────────────────────────────────────────────
 {s} slice 1 -1 "cut" "keep1" "keep2" "cut"
 {output} = "slice(1,-1): {s}"
