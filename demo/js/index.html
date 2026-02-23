@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BUCL Playground</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2d3147;
+      --accent:   #7c6af7;
+      --accent2:  #56cfb2;
+      --text:     #e0e2f0;
+      --muted:    #7a7f9e;
+      --error:    #f06464;
+      --success:  #56cfb2;
+      --font-mono: "Fira Code", "Cascadia Code", "Consolas", monospace;
+      --radius:   8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header h1 span { color: var(--accent); }
+    header .tagline {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    #status-badge {
+      margin-left: auto;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #2a2f4a;
+      color: var(--muted);
+      transition: all 0.3s;
+    }
+    #status-badge.ready   { background: #1a3a2e; color: var(--success); }
+    #status-badge.error   { background: #3a1a1a; color: var(--error); }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Examples bar ── */
+    .examples-bar {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .examples-bar label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-right: 0.25rem;
+    }
+    .example-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .example-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Editor panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      gap: 0.5rem;
+    }
+    .panel-header h2 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .panel-header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .panel-header .dot.out { background: var(--accent2); }
+
+    #editor {
+      flex: 1;
+      resize: none;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--text);
+      tab-size: 4;
+      min-height: 340px;
+    }
+    #editor::placeholder { color: var(--muted); }
+
+    /* ── Output panel ── */
+    #output {
+      flex: 1;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.65;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--accent2);
+      min-height: 340px;
+    }
+    #output.empty      { color: var(--muted); font-style: italic; }
+    #output.has-error  { color: var(--error); }
+
+    /* ── Run button ── */
+    .run-row {
+      padding: 0.6rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    #run-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1.4rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    #run-btn:hover     { opacity: 0.85; }
+    #run-btn:disabled  { opacity: 0.4; cursor: default; }
+    #clear-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+    #clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span>BUCL</span> Playground</h1>
+  <span class="tagline">BatchUp Command Line &mdash; runs in your browser</span>
+  <span id="status-badge">loading&hellip;</span>
+</header>
+
+<main>
+  <div class="examples-bar">
+    <label>Examples:</label>
+    <button class="example-btn" data-example="hello">Hello World</button>
+    <button class="example-btn" data-example="fizzbuzz">FizzBuzz</button>
+    <button class="example-btn" data-example="strings">Strings</button>
+    <button class="example-btn" data-example="loops">Loops</button>
+    <button class="example-btn" data-example="random">Random</button>
+    <button class="example-btn" data-example="fibonacci">Fibonacci</button>
+  </div>
+
+  <!-- Editor -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="dot"></div>
+      <h2>Editor</h2>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="# Write your BUCL script here&#10;{output} = &quot;Hello, World!&quot;"></textarea>
+    <div class="run-row">
+      <button id="clear-btn">Clear</button>
+      <button id="run-btn" disabled>
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor">
+          <polygon points="2,1 10,6 2,11"/>
+        </svg>
+        Run
+      </button>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="dot out"></div>
+      <h2>Output</h2>
+    </div>
+    <pre id="output" class="empty">// output appears here</pre>
+  </div>
+</main>
+
+<footer>
+  BUCL is open source &mdash;
+  <a href="https://github.com/terraloader/bucl-rust" target="_blank">github.com/terraloader/bucl-rust</a>
+</footer>
+
+<script src="bucl.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// Example scripts
+// ---------------------------------------------------------------------------
+const EXAMPLES = {
+  hello: `# Hello, World!
+{output} = "Hello, World!"
+
+{name} = "BUCL"
+{output} = "Welcome to {name}!"
+
+# String interpolation
+{lang} = "JavaScript"
+{output} = "Running in {lang}"`,
+
+  fizzbuzz: `# FizzBuzz 1-20
+{i} repeat 20
+    {fizz} math "{i/index} % 3"
+    {buzz} math "{i/index} % 5"
+    if {fizz} = "0"
+        if {buzz} = "0"
+            {output} = "FizzBuzz"
+        else
+            {output} = "Fizz"
+    elseif {buzz} = "0"
+        {output} = "Buzz"
+    else
+        {output} = "{i/index}"`,
+
+  strings: `# String functions
+{rev} reverse "Hello, World!"
+{output} = "reversed: {rev}"
+
+{sub} substr 0 5 "Hello, World!"
+{output} = "substr(0,5): {sub}"
+
+{pos} strpos "Hello, World!" "World"
+{output} = "strpos 'World': {pos}"
+
+{len} length "Hello" " " "World"
+{output} = "length: {len}"
+
+# implode / explode
+{joined} implode " | " "alpha" "beta" "gamma"
+{output} = "implode: {joined}"
+
+{parts} explode "," "one,two,three,four"
+{output} = "explode[0]: {parts/0}"
+{output} = "explode[1]: {parts/1}"
+{output} = "explode[2]: {parts/2}"
+{output} = "explode[3]: {parts/3}"`,
+
+  loops: `# repeat loop
+{output} = "-- repeat --"
+{r} repeat 5
+    {output} = "  step {r/index}"
+
+# each loop
+{output} = "-- each --"
+{e} each "Alice" "Bob" "Charlie" "Dana"
+    {output} = "  Hello, {e/value}!"
+
+# if / elseif / else
+{output} = "-- if/elseif/else --"
+{x} = "b"
+if {x} = "a"
+    {output} = "  x is a"
+elseif {x} = "b"
+    {output} = "  x is b"
+else
+    {output} = "  x is something else"
+
+# math
+{output} = "-- math --"
+{result} math "(2 + 3) * 4"
+{output} = "  (2+3)*4 = {result}"`,
+
+  random: `# Random numbers
+{a} random 1 6
+{output} = "dice roll: {a}"
+
+{b} random 1 100
+{output} = "1-100: {b}"
+
+# Pick a random greeting
+{pick} random 0 2
+if {pick} = "0"
+    {word} = "Hello"
+elseif {pick} = "1"
+    {word} = "Hi"
+else
+    {word} = "Hey"
+{output} = "{word}, from a random greeting!"`,
+
+  fibonacci: `# Fibonacci sequence (first 12 terms)
+{a} = "0"
+{b} = "1"
+{output} = "Fibonacci: {a}, {b}"
+{i} repeat 10
+    {next} math "{a} + {b}"
+    {output} = "  -> {next}"
+    {a} = {b}
+    {b} = {next}`,
+};
+
+// ---------------------------------------------------------------------------
+// UI
+// ---------------------------------------------------------------------------
+var statusBadge = document.getElementById('status-badge');
+var runBtn      = document.getElementById('run-btn');
+var editor      = document.getElementById('editor');
+var outputEl    = document.getElementById('output');
+
+// JS interpreter is always available — mark ready immediately.
+statusBadge.textContent = 'ready';
+statusBadge.className   = 'ready';
+runBtn.disabled = false;
+
+runBtn.addEventListener('click', function() {
+  var src = editor.value;
+  try {
+    var out = buclRun(src);
+    if (!out.trim()) {
+      outputEl.textContent = '// (no output)';
+      outputEl.className   = 'empty';
+    } else {
+      outputEl.textContent = out;
+      outputEl.className   = (out.indexOf('[error]') === 0 || out.indexOf('[parse error]') === 0)
+        ? 'has-error' : '';
+    }
+  } catch (err) {
+    outputEl.textContent = '[runtime error] ' + err.message;
+    outputEl.className   = 'has-error';
+  }
+});
+
+document.getElementById('clear-btn').addEventListener('click', function() {
+  outputEl.textContent = '// output appears here';
+  outputEl.className   = 'empty';
+});
+
+// Ctrl/Cmd+Enter to run
+editor.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    runBtn.click();
+  }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    var start = editor.selectionStart;
+    var end   = editor.selectionEnd;
+    editor.value = editor.value.slice(0, start) + '\t' + editor.value.slice(end);
+    editor.selectionStart = editor.selectionEnd = start + 1;
+  }
+});
+
+// Example buttons
+document.querySelectorAll('.example-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var key = btn.dataset.example;
+    if (EXAMPLES[key]) {
+      editor.value = EXAMPLES[key];
+      outputEl.textContent = '// output appears here';
+      outputEl.className   = 'empty';
+    }
+  });
+});
+
+// Pre-load hello example
+editor.value = EXAMPLES.hello;
+</script>
+
+</body>
+</html>
