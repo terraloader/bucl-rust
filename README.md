@@ -52,7 +52,7 @@ echo '{output} = "Hello, World!"' | ./target/release/bucl
 
 ## WebAssembly / Interactive Demo
 
-BUCL can be compiled to WebAssembly and run entirely in the browser. The `demo/` directory contains a self-contained playground (`index.html`) with a code editor, output panel, and six built-in example scripts.
+BUCL can be compiled to WebAssembly and run entirely in the browser. Try the **[live demo](https://terraloader.github.io/bucl-rust/demo/js/)** — or build it locally from the `demo/` directory. The playground includes a code editor, output panel, and six built-in example scripts.
 
 ### Build the WASM module
 
