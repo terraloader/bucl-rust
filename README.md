@@ -8,6 +8,7 @@ BUCL is a simple, text-based scripting language implemented in Rust. It is desig
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [WebAssembly / Interactive Demo](#webassembly--interactive-demo)
 - [Language Reference](#language-reference)
   - [Variables](#variables)
   - [Assignment](#assignment)
@@ -46,6 +47,55 @@ cargo build --release
 # Run from stdin
 echo '{output} = "Hello, World!"' | ./target/release/bucl
 ```
+
+---
+
+## WebAssembly / Interactive Demo
+
+BUCL can be compiled to WebAssembly and run entirely in the browser. The `demo/` directory contains a self-contained playground (`index.html`) with a code editor, output panel, and six built-in example scripts.
+
+### Build the WASM module
+
+**Option A — raw `.wasm` (no extra tooling beyond Rust):**
+
+```bash
+rustup target add wasm32-unknown-unknown
+make wasm-raw          # writes demo/pkg/bucl_wasm.wasm
+make demo              # serves on http://localhost:8000
+```
+
+**Option B — wasm-pack (produces optimised JS glue):**
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+make wasm              # release build with wasm-opt
+make demo
+```
+
+**Development iteration (skips wasm-opt for faster rebuilds):**
+
+```bash
+make wasm-dev
+make demo
+```
+
+### Makefile targets
+
+| Target      | Description                                               |
+|-------------|-----------------------------------------------------------|
+| `build`     | Native debug binary (`cargo build`)                       |
+| `release`   | Native release binary (`cargo build --release`)           |
+| `wasm`      | WASM + JS glue via wasm-pack (release, optimised)         |
+| `wasm-dev`  | WASM + JS glue via wasm-pack (dev, no wasm-opt)           |
+| `wasm-raw`  | Raw `.wasm` via `cargo build` only (no wasm-pack needed)  |
+| `demo`      | Serve `demo/` on `http://localhost:8000`                  |
+| `clean`     | Remove `target/` and `demo/pkg/`                          |
+
+### WASM limitations
+
+- **No filesystem access** — `readfile` and `writefile` are not available in the browser build.
+- The standard library functions (`reverse`, `explode`, `implode`, `maxlength`, `slice`) are embedded directly into the WASM binary, so no separate file loading is required.
 
 ---
 
@@ -352,10 +402,11 @@ Variable names can embed other variables — the inner part is resolved at runti
 bucl-rust/
 ├── src/
 │   ├── main.rs          # Entry point; CLI argument handling
+│   ├── lib.rs           # WASM entry point (bucl_alloc/bucl_free/bucl_run)
 │   ├── lexer.rs         # Tokenizer (variables, strings, bare words)
 │   ├── parser.rs        # AST builder (handles indented blocks)
 │   ├── ast.rs           # AST node definitions
-│   ├── evaluator.rs     # Runtime: variable store, function dispatch
+│   ├── evaluator.rs     # Runtime: variable store, function dispatch, output capture
 │   ├── error.rs         # Error types (Parse, Runtime, IO, UnknownFunction)
 │   └── functions/       # Built-in function implementations (Rust)
 ├── functions/           # Standard library functions (BUCL)
@@ -364,9 +415,14 @@ bucl-rust/
 │   ├── implode.bucl
 │   ├── maxlength.bucl
 │   └── slice.bucl
+├── demo/
+│   └── index.html       # Self-contained BUCL Playground (runs in browser via WASM)
 ├── examples/
 │   ├── hello.bucl
 │   └── primitives_test.bucl
+├── .cargo/
+│   └── config.toml      # wasm32 build flags (opt-level=s, panic=abort)
+├── Makefile             # build / release / wasm / wasm-dev / wasm-raw / demo / clean
 └── Cargo.toml
 ```
 
