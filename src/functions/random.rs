@@ -5,7 +5,34 @@
 /// {r} random 10        # 0 .. 10  (inclusive)
 /// {r} random 1 6       # 1 .. 6   (inclusive, like a die)
 /// ```
+///
+/// On native targets this uses `rand::thread_rng`.
+/// On WASM targets it imports `js_math_random` from the host (provided by the
+/// demo's JS glue as `() => Math.random()`).
+
+// Native: pull in the rand crate.
+#[cfg(not(target_arch = "wasm32"))]
 use rand::Rng;
+
+// WASM: import Math.random() from the JavaScript host.
+#[cfg(target_arch = "wasm32")]
+extern "C" {
+    fn js_math_random() -> f64;
+}
+
+fn random_in_range(min: i64, max: i64) -> i64 {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        rand::thread_rng().gen_range(min..=max)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let f = unsafe { js_math_random() };
+        // Map [0, 1) float to [min, max] integer.
+        let range = (max - min).saturating_add(1) as f64;
+        min + (f * range) as i64
+    }
+}
 
 use crate::ast::Statement;
 use crate::error::{BuclError, Result};
@@ -42,8 +69,7 @@ impl BuclFunction for Random {
             )));
         }
 
-        let value = rand::thread_rng().gen_range(min..=max);
-        Ok(Some(value.to_string()))
+        Ok(Some(random_in_range(min, max).to_string()))
     }
 }
 

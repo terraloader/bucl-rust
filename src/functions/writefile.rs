@@ -7,36 +7,49 @@
 /// ```bucl
 /// {ok} writefile "out.txt" "Hello, World!"
 /// ```
-use std::fs;
-
-use crate::ast::Statement;
-use crate::error::{BuclError, Result};
+///
+/// Not available in WASM builds (no filesystem access).
 use crate::evaluator::Evaluator;
-use crate::functions::BuclFunction;
 
-pub struct WriteFile;
+#[cfg(not(target_arch = "wasm32"))]
+mod native {
+    use std::fs;
 
-impl BuclFunction for WriteFile {
-    fn call(
-        &self,
-        _evaluator: &mut Evaluator,
-        _target: Option<&str>,
-        args: Vec<String>,
-        _block: Option<&[Statement]>,
-        _continuation: Option<&Statement>,
-    ) -> Result<Option<String>> {
-        if args.len() < 2 {
-            return Err(BuclError::RuntimeError(
-                "writefile: requires a path and content".into(),
-            ));
+    use crate::ast::Statement;
+    use crate::error::{BuclError, Result};
+    use crate::evaluator::Evaluator;
+    use crate::functions::BuclFunction;
+
+    pub struct WriteFile;
+
+    impl BuclFunction for WriteFile {
+        fn call(
+            &self,
+            _evaluator: &mut Evaluator,
+            _target: Option<&str>,
+            args: Vec<String>,
+            _block: Option<&[Statement]>,
+            _continuation: Option<&Statement>,
+        ) -> Result<Option<String>> {
+            if args.len() < 2 {
+                return Err(BuclError::RuntimeError(
+                    "writefile: requires a path and content".into(),
+                ));
+            }
+            let path = &args[0];
+            let content = args[1..].join("");
+            fs::write(path, &content)?;
+            Ok(Some(content))
         }
-        let path = &args[0];
-        let content = args[1..].join("");
-        fs::write(path, &content)?;
-        Ok(Some(content))
+    }
+
+    pub fn register(eval: &mut Evaluator) {
+        eval.register("writefile", WriteFile);
     }
 }
 
 pub fn register(eval: &mut Evaluator) {
-    eval.register("writefile", WriteFile);
+    #[cfg(not(target_arch = "wasm32"))]
+    native::register(eval);
+    let _ = eval; // suppress unused warning on wasm32
 }
