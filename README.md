@@ -120,7 +120,18 @@ The general syntax for calling a function is:
 
 **if / elseif / else**
 
-Conditions compare two values with `=` (string equality). Blocks are indented.
+Conditions compare two values using one of the supported operators. Blocks are indented.
+
+| Operator | Meaning                              |
+|----------|--------------------------------------|
+| `=`      | String equality                      |
+| `!=`     | String inequality                    |
+| `>`      | Greater than (numeric if possible)   |
+| `<`      | Less than (numeric if possible)      |
+| `>=`     | Greater than or equal                |
+| `<=`     | Less than or equal                   |
+
+For `>`, `<`, `>=`, `<=`: if both sides parse as numbers the comparison is numeric; otherwise it falls back to lexicographic string comparison.
 
 ```
 {x} = "b"
@@ -130,6 +141,10 @@ elseif {x} = "b"
     {output} = "x is b"
 else
     {output} = "x is something else"
+
+{n} = "42"
+if {n} > "10"
+    {output} = "n is greater than 10"
 ```
 
 ### Loops
@@ -162,15 +177,14 @@ else
 | `length`   | `{t} length arg ...`                 | Total character length of all arguments               |
 | `count`    | `{t} count arg ...`                  | Number of arguments                                   |
 | `substr`   | `{t} substr start len str`           | Extract substring at `start` for `len` characters     |
-| `strpos`   | `{t} strpos needle haystack`         | Position of `needle` in `haystack` (-1 if not found)  |
+| `strpos`   | `{t} strpos haystack needle`         | Position of `needle` in `haystack` (-1 if not found)  |
 | `math`     | `{t} math "expr"`                    | Evaluate arithmetic expression (`+` `-` `*` `/` `%`)  |
-| `cmp`      | `{t} cmp a b`                        | Compare numbers: returns 1, 0, or -1                  |
 | `random`   | `{t} random min max`                 | Random integer in range [min, max]                    |
 | `readfile` | `{t} readfile path`                  | Read file contents into variable                      |
 | `writefile`| `writefile path content`             | Write content to file                                 |
 | `getvar`   | `{t} getvar "name"`                  | Get variable by computed name                         |
 | `setvar`   | `setvar "name" value`                | Set variable by computed name                         |
-| `if`       | `if val = val` + block               | Conditional block                                     |
+| `if`       | `if val op val` + block              | Conditional block (`=` `!=` `>` `<` `>=` `<=`)        |
 | `repeat`   | `{t} repeat N` + block               | Loop N times                                          |
 | `each`     | `{t} each arg ...` + block           | Iterate over arguments                                |
 
