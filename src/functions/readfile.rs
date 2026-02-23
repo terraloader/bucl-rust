@@ -3,32 +3,45 @@
 /// ```bucl
 /// {contents} readfile "hello.txt"
 /// ```
-use std::fs;
-
-use crate::ast::Statement;
-use crate::error::{BuclError, Result};
+///
+/// Not available in WASM builds (no filesystem access).
 use crate::evaluator::Evaluator;
-use crate::functions::BuclFunction;
 
-pub struct ReadFile;
+#[cfg(not(target_arch = "wasm32"))]
+mod native {
+    use std::fs;
 
-impl BuclFunction for ReadFile {
-    fn call(
-        &self,
-        _evaluator: &mut Evaluator,
-        _target: Option<&str>,
-        args: Vec<String>,
-        _block: Option<&[Statement]>,
-        _continuation: Option<&Statement>,
-    ) -> Result<Option<String>> {
-        let path = args
-            .first()
-            .ok_or_else(|| BuclError::RuntimeError("readfile: missing path argument".into()))?;
-        let contents = fs::read_to_string(path)?;
-        Ok(Some(contents))
+    use crate::ast::Statement;
+    use crate::error::{BuclError, Result};
+    use crate::evaluator::Evaluator;
+    use crate::functions::BuclFunction;
+
+    pub struct ReadFile;
+
+    impl BuclFunction for ReadFile {
+        fn call(
+            &self,
+            _evaluator: &mut Evaluator,
+            _target: Option<&str>,
+            args: Vec<String>,
+            _block: Option<&[Statement]>,
+            _continuation: Option<&Statement>,
+        ) -> Result<Option<String>> {
+            let path = args.first().ok_or_else(|| {
+                BuclError::RuntimeError("readfile: missing path argument".into())
+            })?;
+            let contents = fs::read_to_string(path)?;
+            Ok(Some(contents))
+        }
+    }
+
+    pub fn register(eval: &mut Evaluator) {
+        eval.register("readfile", ReadFile);
     }
 }
 
 pub fn register(eval: &mut Evaluator) {
-    eval.register("readfile", ReadFile);
+    #[cfg(not(target_arch = "wasm32"))]
+    native::register(eval);
+    let _ = eval; // suppress unused warning on wasm32
 }

@@ -1,0 +1,9 @@
+# WASM-specific build settings.
+# These only apply when building with --target wasm32-unknown-unknown.
+[target.wasm32-unknown-unknown]
+rustflags = [
+  # Keep binary size small.
+  "-C", "opt-level=s",
+  # Panic via abort (no unwinding runtime in WASM).
+  "-C", "panic=abort",
+]

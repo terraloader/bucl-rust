@@ -13,6 +13,13 @@ pub struct Evaluator {
     /// Directory to resolve `functions/<name>.bucl` lookups against.
     /// Typically the directory containing the script being run.
     pub base_dir: Option<PathBuf>,
+    /// Captured output lines.  Every assignment to `{output}` appends here.
+    /// On native targets the line is also printed to stdout.
+    pub output_buffer: Vec<String>,
+    /// Pre-loaded BUCL function sources keyed by function name (no `.bucl`
+    /// extension).  Checked before the filesystem so WASM builds can embed
+    /// the standard library with `include_str!`.
+    pub embedded_functions: HashMap<String, String>,
 }
 
 impl Evaluator {
@@ -21,6 +28,8 @@ impl Evaluator {
             variables: HashMap::new(),
             functions: HashMap::new(),
             base_dir: None,
+            output_buffer: Vec::new(),
+            embedded_functions: HashMap::new(),
         }
     }
 
@@ -48,6 +57,8 @@ impl Evaluator {
     /// automatic metadata so that internal slots like `{r/index}` stay clean.
     pub fn set_var(&mut self, name: &str, value: String) {
         if name == "output" {
+            self.output_buffer.push(value.clone());
+            #[cfg(not(target_arch = "wasm32"))]
             println!("{}", value);
         }
         // Auto-maintain metadata only for root variables.
@@ -221,21 +232,31 @@ impl Evaluator {
     // Dynamic .bucl function loading
     // -----------------------------------------------------------------------
 
-    /// Search for `functions/<name>.bucl` relative to `base_dir` (the script's
-    /// directory) and then relative to the current working directory.
+    /// Search for a `.bucl` function by name.
+    ///
+    /// Lookup order:
+    /// 1. `embedded_functions` map (used by WASM builds and for stdlib).
+    /// 2. Filesystem: `functions/<name>.bucl` relative to `base_dir`, then CWD.
+    ///    (skipped when targeting `wasm32`).
     fn find_bucl_function(&self, name: &str) -> Option<String> {
-        let filename = format!("{}.bucl", name);
-
-        let mut candidates: Vec<PathBuf> = Vec::new();
-
-        if let Some(base) = &self.base_dir {
-            candidates.push(base.join("functions").join(&filename));
+        // 1. Embedded (in-memory) registry — always checked first.
+        if let Some(src) = self.embedded_functions.get(name) {
+            return Some(src.clone());
         }
-        candidates.push(Path::new("functions").join(&filename));
 
-        for path in candidates {
-            if let Ok(source) = std::fs::read_to_string(&path) {
-                return Some(source);
+        // 2. Filesystem lookup — not available on WASM targets.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let filename = format!("{}.bucl", name);
+            let mut candidates: Vec<PathBuf> = Vec::new();
+            if let Some(base) = &self.base_dir {
+                candidates.push(base.join("functions").join(&filename));
+            }
+            candidates.push(Path::new("functions").join(&filename));
+            for path in candidates {
+                if let Ok(source) = std::fs::read_to_string(&path) {
+                    return Some(source);
+                }
             }
         }
 
@@ -266,10 +287,11 @@ impl Evaluator {
 
         let stmts = crate::parser::parse(&source)?;
 
-        // Build an isolated child evaluator that shares the function registry
-        // and base_dir but has its own variable scope.
+        // Build an isolated child evaluator that shares the function registry,
+        // base_dir, and embedded_functions but has its own variable scope.
         let mut child = Evaluator::new();
         child.base_dir = self.base_dir.clone();
+        child.embedded_functions = self.embedded_functions.clone();
         crate::functions::register_all(&mut child);
 
         // Inject call arguments — bypass set_var to avoid spurious output.
@@ -282,6 +304,9 @@ impl Evaluator {
         }
 
         child.evaluate_statements(&stmts)?;
+
+        // Propagate any output the child produced into the parent buffer.
+        self.output_buffer.append(&mut child.output_buffer);
 
         // Extract the primary return value.
         let return_val = child.variables.get("return").cloned();
