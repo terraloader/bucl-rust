@@ -2,7 +2,7 @@
 name = "bucl"
 version = "0.1.0"
 edition = "2021"
-description = "Parser and executor for the BUCL programming language"
+description = "Parser and executor for BUCL - BatchUp Command Line"
 license = "MPL-2.0"
 
 [[bin]]
