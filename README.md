@@ -106,6 +106,31 @@ Variable names can embed other variables using `{var/{i}}` — the inner referen
 {output} = {parts/{i}}    # world
 ```
 
+### Array Variable Expansion
+
+A variable that holds **multiple strings** (`{var/count} > 1`) is treated differently depending on where it appears:
+
+**Inside a quoted string** — the elements are joined with a single space and inserted as one value:
+
+```
+{colors} = "red" "green" "blue"
+{output} = "I like {colors}"   # I like red green blue
+```
+
+**Outside a quoted string (direct argument)** — the variable expands into as many separate arguments as it has elements, exactly as if each element were written individually:
+
+```
+{colors} = "red" "green" "blue"
+
+# Both lines below are equivalent — {colors} expands to three arguments:
+{joined} implode ", " {colors}
+{joined} implode ", " "red" "green" "blue"
+
+# Works with any function that accepts a variable number of arguments:
+{e} each {colors}
+    {output} = "color: {e/value}"
+```
+
 ### String Interpolation
 
 Inside double-quoted strings, variable references are expanded automatically.
@@ -220,7 +245,7 @@ if {n} > "10"
 | `repeat`   | `{t} repeat N` + block               | Loop N times                                          |
 | `each`     | `{t} each arg ...` + block           | Iterate over arguments                                |
 
-> **`getvar` / `setvar`** exist as low-level built-ins but are rarely needed in application scripts. Use nested variable references (`{var/{i}}`) instead — they resolve at runtime and cover most dynamic-lookup cases. `getvar` and `setvar` are primarily used inside BUCL library functions (e.g. `implode`) that need to walk argument lists by computed index.
+> **`getvar` / `setvar`** exist as low-level built-ins for reading/writing a variable whose name is only known at runtime. They are rarely needed in application scripts: use nested variable references (`{var/{i}}`) for dynamic lookup, and the `{args/N}` convention (see below) inside BUCL functions to access positional arguments by computed index.
 
 ---
 
@@ -228,14 +253,18 @@ if {n} > "10"
 
 Functions can be written in BUCL and placed in a `functions/` directory next to your script (or in the working directory). A file named `functions/foo.bucl` is automatically available as the function `foo`.
 
-Inside a function file:
+Inside a function file, the following variables are available:
 
-| Variable     | Meaning                            |
-|--------------|------------------------------------|
-| `{0}`, `{1}` | Positional arguments               |
-| `{argc}`     | Number of arguments                |
-| `{target}`   | Name of the caller's target variable |
-| `{return}`   | Set this to return a value         |
+| Variable          | Meaning                                              |
+|-------------------|------------------------------------------------------|
+| `{0}`, `{1}`, …  | Positional arguments (individual variables)          |
+| `{args/0}`, `{args/1}`, … | Same arguments accessible as `{args/{i}}` |
+| `{args/count}`    | Same as `{argc}`                                     |
+| `{argc}`          | Number of arguments                                  |
+| `{target}`        | Name of the caller's target variable                 |
+| `{return}`        | Set this to return a value                           |
+
+The `{args/N}` variables allow dynamic positional access via `{args/{i}}` without needing `getvar`.
 
 The bundled `functions/` directory includes:
 
@@ -280,8 +309,17 @@ The bundled `functions/` directory includes:
 {output} = "part 0: {parts/0}"
 {output} = "part 1: {parts/1}"
 
+# Literal items
 {joined} implode ", " "alpha" "beta" "gamma"
 {output} = {joined}
+
+# Array variable — expands to separate arguments outside a string
+{words} = "alpha" "beta" "gamma"
+{joined} implode ", " {words}   # same result as the line above
+{output} = {joined}
+
+# Inside a string the same variable is space-joined into one value
+{output} = "words: {words}"     # words: alpha beta gamma
 ```
 
 ### File I/O
