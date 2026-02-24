@@ -9,11 +9,11 @@ if {cool} = "easy"
 echo {greeting}
 
 # ── Built-in functions ──────────────────────────────────────────────────────
-{len} length "Hello" " " "World"
-echo "length of 'Hello World' = {len}"
+{hw} = "Hello World"
+echo "length of 'Hello World' = {hw/length}"
 
-{cnt} count "one" "two" "three"
-echo "count = {cnt}"
+{words3} = "one" "two" "three"
+echo "count = {words3/count}"
 
 {ml} maxlength "short" "much longer" "mid"
 echo "maxlength = {ml}"

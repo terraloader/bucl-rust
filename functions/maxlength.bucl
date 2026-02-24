@@ -10,8 +10,8 @@
 
 {r} repeat {argc}
 	{_i} math "{r/index}-1"
-	{_item} getvar {_i}
-	{_len} length {_item}
+	{_item} = {args/{_i}}
+	{_len} = {_item/length}
 	if {_len} > {_max}
 		{_max} = {_len}
 

@@ -11,10 +11,10 @@
 {_text} = ""
 {r} repeat {argc}
 	{_i} math "{r/index}-1"
-	{_arg} getvar {_i}
+	{_arg} = {args/{_i}}
 	{_text} = "{_text}{_arg}"
 
-{_len} length {_text}
+{_len} = {_text/length}
 {_result} = ""
 
 {r} repeat {_len}

@@ -14,8 +14,8 @@
 
 {_sep} = {0}
 {_text} = {1}
-{_sep_len} length {_sep}
-{_text_len} length {_text}
+{_sep_len} = {_sep/length}
+{_text_len} = {_text/length}
 {_count} = "0"
 {_done} = "0"
 {_remaining} = {1}
@@ -34,7 +34,7 @@
 			{_concat} = "{_concat}{_part}"
 			{_count} math "{_count}+1"
 			{_after} math "{_pos}+{_sep_len}"
-			{_rem_len} length {_remaining}
+			{_rem_len} = {_remaining/length}
 			{_remaining} substr {_after} {_rem_len} {_remaining}
 		else
 			# No more separators: store the final piece.
