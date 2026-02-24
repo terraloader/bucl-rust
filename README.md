@@ -52,12 +52,9 @@ echo 'echo "Hello, World!"' | ./target/release/bucl
 
 ## WebAssembly / Interactive Demo
 
-BUCL can be compiled to WebAssembly and run entirely in the browser. Both playgrounds include a code editor, output panel, and six built-in example scripts.
+BUCL can be compiled to WebAssembly and run entirely in the browser. The playground includes a code editor, output panel, and six built-in example scripts.
 
-| Demo | Engine | Link |
-|------|--------|------|
-| **JS demo** | Pure JavaScript port | **[live demo](https://terraloader.github.io/bucl-rust/demo/js/)** |
-| **WASM demo** | Prebuilt Rust → WebAssembly | **[live demo](https://terraloader.github.io/bucl-rust/demo/wasm/)** |
+**[Live demo](https://terraloader.github.io/bucl-rust/demo/wasm/)** — runs the prebuilt Rust → WebAssembly binary.
 
 The WASM binary is checked into the repo at `docs/demo/wasm/pkg/bucl_wasm.wasm`, so the demo works out of the box — no local Rust toolchain needed.
 
@@ -434,9 +431,6 @@ bucl-rust/
 │   ├── maxlength.bucl
 │   └── slice.bucl
 ├── docs/demo/
-│   ├── js/
-│   │   ├── index.html   # JS Playground (pure JavaScript interpreter)
-│   │   └── bucl.js      # JavaScript port of the BUCL engine
 │   └── wasm/
 │       ├── index.html   # WASM Playground (runs prebuilt Rust via WebAssembly)
 │       └── pkg/
