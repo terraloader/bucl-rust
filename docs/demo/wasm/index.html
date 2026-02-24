@@ -241,7 +241,7 @@
       <div class="dot"></div>
       <h2>Editor</h2>
     </div>
-    <textarea id="editor" spellcheck="false" placeholder="# Write your BUCL script here&#10;{output} = &quot;Hello, World!&quot;"></textarea>
+    <textarea id="editor" spellcheck="false" placeholder="# Write your BUCL script here&#10;echo &quot;Hello, World!&quot;"></textarea>
     <div class="run-row">
       <button id="clear-btn">Clear</button>
       <button id="run-btn" disabled>
@@ -274,14 +274,14 @@
 // ---------------------------------------------------------------------------
 const EXAMPLES = {
   hello: `# Hello, World!
-{output} = "Hello, World!"
+echo "Hello, World!"
 
 {name} = "BUCL"
-{output} = "Welcome to {name}!"
+echo "Welcome to {name}!"
 
 # String interpolation
 {lang} = "WebAssembly"
-{output} = "Running in {lang}"`,
+echo "Running in {lang}"`,
 
   fizzbuzz: `# FizzBuzz 1-20
 {i} repeat 20
@@ -289,68 +289,68 @@ const EXAMPLES = {
     {buzz} math "{i/index} % 5"
     if {fizz} = "0"
         if {buzz} = "0"
-            {output} = "FizzBuzz"
+            echo "FizzBuzz"
         else
-            {output} = "Fizz"
+            echo "Fizz"
     elseif {buzz} = "0"
-        {output} = "Buzz"
+        echo "Buzz"
     else
-        {output} = "{i/index}"`,
+        echo "{i/index}"`,
 
   strings: `# String functions
 {rev} reverse "Hello, World!"
-{output} = "reversed: {rev}"
+echo "reversed: {rev}"
 
 {sub} substr 0 5 "Hello, World!"
-{output} = "substr(0,5): {sub}"
+echo "substr(0,5): {sub}"
 
 {pos} strpos "Hello, World!" "World"
-{output} = "strpos 'World': {pos}"
+echo "strpos 'World': {pos}"
 
 {len} length "Hello" " " "World"
-{output} = "length: {len}"
+echo "length: {len}"
 
 # implode / explode
 {joined} implode " | " "alpha" "beta" "gamma"
-{output} = "implode: {joined}"
+echo "implode: {joined}"
 
 {parts} explode "," "one,two,three,four"
-{output} = "explode count: {parts/count}"
-{output} = "  [0] = {parts/0}"
-{output} = "  [1] = {parts/1}"
-{output} = "  [2] = {parts/2}"`,
+echo "explode count: {parts/count}"
+echo "  [0] = {parts/0}"
+echo "  [1] = {parts/1}"
+echo "  [2] = {parts/2}"`,
 
   loops: `# repeat loop
-{output} = "-- repeat --"
+echo "-- repeat --"
 {r} repeat 5
-    {output} = "  step {r/index}"
+    echo "  step {r/index}"
 
 # each loop
-{output} = "-- each --"
+echo "-- each --"
 {e} each "Alice" "Bob" "Charlie" "Dana"
-    {output} = "  Hello, {e/value}!"
+    echo "  Hello, {e/value}!"
 
 # if / elseif / else
-{output} = "-- if/elseif/else --"
+echo "-- if/elseif/else --"
 {x} = "b"
 if {x} = "a"
-    {output} = "  x is a"
+    echo "  x is a"
 elseif {x} = "b"
-    {output} = "  x is b"
+    echo "  x is b"
 else
-    {output} = "  x is something else"
+    echo "  x is something else"
 
 # math
-{output} = "-- math --"
+echo "-- math --"
 {result} math "(2 + 3) * 4"
-{output} = "  (2+3)*4 = {result}"`,
+echo "  (2+3)*4 = {result}"`,
 
   random: `# Random numbers
 {a} random 1 6
-{output} = "dice roll: {a}"
+echo "dice roll: {a}"
 
 {b} random 1 100
-{output} = "1-100: {b}"
+echo "1-100: {b}"
 
 # Pick a random greeting
 {pick} random 0 2
@@ -360,15 +360,15 @@ elseif {pick} = "1"
     {word} = "Hi"
 else
     {word} = "Hey"
-{output} = "{word}, from a random greeting!"`,
+echo "{word}, from a random greeting!"`,
 
   fibonacci: `# Fibonacci sequence (first 12 terms)
 {a} = "0"
 {b} = "1"
-{output} = "Fibonacci: {a}, {b}"
+echo "Fibonacci: {a}, {b}"
 {i} repeat 10
     {next} math "{a} + {b}"
-    {output} = "  -> {next}"
+    echo "  -> {next}"
     {a} = {b}
     {b} = {next}`,
 };

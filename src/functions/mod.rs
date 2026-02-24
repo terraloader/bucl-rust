@@ -40,6 +40,7 @@ pub trait BuclFunction: Send + Sync {
 pub mod assign;    // =
 pub mod count;     // count
 pub mod each;      // each
+pub mod echo;      // echo — print to output
 pub mod getvar;    // getvar — read a variable by computed name
 pub mod if_fn;     // if / elseif / else
 pub mod length;    // length
@@ -65,6 +66,7 @@ pub fn register_all(eval: &mut Evaluator) {
     assign::register(eval);
     count::register(eval);
     each::register(eval);
+    echo::register(eval);
     getvar::register(eval);
     if_fn::register(eval);
     length::register(eval);

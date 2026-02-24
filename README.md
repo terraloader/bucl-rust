@@ -45,7 +45,7 @@ cargo build --release
 ./target/release/bucl examples/hello.bucl
 
 # Run from stdin
-echo '{output} = "Hello, World!"' | ./target/release/bucl
+echo 'echo "Hello, World!"' | ./target/release/bucl
 ```
 
 ---
@@ -142,27 +142,27 @@ When a variable holds a **single string**, `{var/N}` returns the character at po
 
 ```
 {word} = "hello"
-{output} = {word/0}       # h
-{output} = {word/4}       # o
-{output} = {word/length}  # 5
-{output} = {word/count}   # 1
+echo {word/0}       # h
+echo {word/4}       # o
+echo {word/length}  # 5
+echo {word/count}   # 1
 ```
 
 When assigned **multiple strings**, each is stored separately as `{var/0}`, `{var/1}`, … and `{var}` holds the concatenation:
 
 ```
 {parts} = "hello" "world"
-{output} = {parts/0}      # hello
-{output} = {parts/1}      # world
-{output} = {parts}        # helloworld
-{output} = {parts/count}  # 2
+echo {parts/0}      # hello
+echo {parts/1}      # world
+echo {parts}        # helloworld
+echo {parts/count}  # 2
 ```
 
 Variable names can embed other variables using `{var/{i}}` — the inner reference is resolved at runtime:
 
 ```
 {i} = "1"
-{output} = {parts/{i}}    # world
+echo {parts/{i}}    # world
 ```
 
 ### Array Variable Expansion
@@ -173,7 +173,7 @@ A variable that holds **multiple strings** (`{var/count} > 1`) is treated differ
 
 ```
 {colors} = "red" "green" "blue"
-{output} = "I like {colors}"   # I like red green blue
+echo "I like {colors}"   # I like red green blue
 ```
 
 **Outside a quoted string (direct argument)** — the variable expands into as many separate arguments as it has elements, exactly as if each element were written individually:
@@ -187,7 +187,7 @@ A variable that holds **multiple strings** (`{var/count} > 1`) is treated differ
 
 # Works with any function that accepts a variable number of arguments:
 {e} each {colors}
-    {output} = "color: {e/value}"
+    echo "color: {e/value}"
 ```
 
 ### String Interpolation
@@ -196,7 +196,7 @@ Inside double-quoted strings, variable references are expanded automatically.
 
 ```
 {name} = "World"
-{output} = "Hello, {name}!"
+echo "Hello, {name}!"
 # prints: Hello, World!
 ```
 
@@ -211,10 +211,11 @@ Lines beginning with `#` are ignored.
 
 ### Output
 
-Assigning to the special variable `{output}` prints the value to stdout followed by a newline.
+Use `echo` to print one or more values to stdout. All arguments are joined with a single space and followed by a newline.
 
 ```
-{output} = "Hello!"
+echo "Hello!"
+echo "x =" {x}
 ```
 
 ### Function Calls
@@ -231,7 +232,7 @@ The general syntax for calling a function is:
 
 ```
 {len} length "Hello" "World"
-{output} = "Total length: {len}"
+echo "Total length: {len}"
 ```
 
 ### Control Flow
@@ -254,15 +255,15 @@ For `>`, `<`, `>=`, `<=`: if both sides parse as numbers the comparison is numer
 ```
 {x} = "b"
 if {x} = "a"
-    {output} = "x is a"
+    echo "x is a"
 elseif {x} = "b"
-    {output} = "x is b"
+    echo "x is b"
 else
-    {output} = "x is something else"
+    echo "x is something else"
 
 {n} = "42"
 if {n} > "10"
-    {output} = "n is greater than 10"
+    echo "n is greater than 10"
 ```
 
 ### Loops
@@ -271,7 +272,7 @@ if {n} > "10"
 
 ```
 {r} repeat 3
-    {output} = "iteration {r/index} of 3"
+    echo "iteration {r/index} of 3"
 ```
 
 `{r/index}` holds the current iteration number (starting at 1).
@@ -280,7 +281,7 @@ if {n} > "10"
 
 ```
 {e} each "Alice" "Bob" "Charlie"
-    {output} = "Hello, {e/value}!"
+    echo "Hello, {e/value}!"
 ```
 
 `{e/value}` holds the current element.
@@ -292,6 +293,7 @@ if {n} > "10"
 | Function   | Signature                            | Description                                           |
 |------------|--------------------------------------|-------------------------------------------------------|
 | `=`        | `{target} = val ...`                 | Assign (concatenate args) to variable                 |
+| `echo`     | `echo arg ...`                       | Print args (space-joined) to stdout                   |
 | `length`   | `{t} length arg ...`                 | Total character length of all arguments               |
 | `count`    | `{t} count arg ...`                  | Number of arguments                                   |
 | `substr`   | `{t} substr start len str`           | Extract substring at `start` for `len` characters     |
@@ -342,7 +344,7 @@ The bundled `functions/` directory includes:
 ### Hello World
 
 ```
-{output} = "Hello, World!"
+echo "Hello, World!"
 ```
 
 ### FizzBuzz (1–15)
@@ -358,7 +360,7 @@ The bundled `functions/` directory includes:
         {word} = "{word}Buzz"
     if {word} = ""
         {word} = "{i/index}"
-    {output} = {word}
+    echo {word}
 ```
 
 ### String Split and Join
@@ -367,25 +369,25 @@ The bundled `functions/` directory includes:
 # explode returns an array — {parts/count} is the number of elements,
 # and each element is accessible as {parts/0}, {parts/1}, …
 {parts} explode "-" "one-two-three"
-{output} = "count: {parts/count}"
-{output} = "part 0: {parts/0}"
-{output} = "part 1: {parts/1}"
+echo "count: {parts/count}"
+echo "part 0: {parts/0}"
+echo "part 1: {parts/1}"
 
 # The array expands to separate arguments when used directly:
 {rejoined} implode " + " {parts}
-{output} = {rejoined}
+echo {rejoined}
 
 # Literal items
 {joined} implode ", " "alpha" "beta" "gamma"
-{output} = {joined}
+echo {joined}
 
 # Array variable — expands to separate arguments outside a string
 {words} = "alpha" "beta" "gamma"
 {joined} implode ", " {words}   # same result as the line above
-{output} = {joined}
+echo {joined}
 
 # Inside a string the same variable is space-joined into one value
-{output} = "words: {words}"     # words: alpha beta gamma
+echo "words: {words}"     # words: alpha beta gamma
 ```
 
 ### File I/O
@@ -393,7 +395,7 @@ The bundled `functions/` directory includes:
 ```
 writefile "hello.txt" "Hello from BUCL\n"
 {contents} readfile "hello.txt"
-{output} = "File says: {contents}"
+echo "File says: {contents}"
 ```
 
 ### Dynamic Variable Names
@@ -403,11 +405,11 @@ Variable names can embed other variables — the inner part is resolved at runti
 ```
 {parts} = "red" "green" "blue"
 {i} = "2"
-{output} = "color: {parts/{i}}"   # color: blue
+echo "color: {parts/{i}}"   # color: blue
 
 # Write to a computed sub-variable
 {parts/{i}} = "purple"
-{output} = "color: {parts/{i}}"   # color: purple
+echo "color: {parts/{i}}"   # color: purple
 ```
 
 ---

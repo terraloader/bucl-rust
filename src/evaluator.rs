@@ -13,8 +13,8 @@ pub struct Evaluator {
     /// Directory to resolve `functions/<name>.bucl` lookups against.
     /// Typically the directory containing the script being run.
     pub base_dir: Option<PathBuf>,
-    /// Captured output lines.  Every assignment to `{output}` appends here.
-    /// On native targets the line is also printed to stdout.
+    /// Captured output lines.  Every call to `echo` appends here.
+    /// On native targets the line is also printed to stdout immediately.
     pub output_buffer: Vec<String>,
     /// Pre-loaded BUCL function sources keyed by function name (no `.bucl`
     /// extension).  Checked before the filesystem so WASM builds can embed
@@ -45,7 +45,7 @@ impl Evaluator {
     // Variable access
     // -----------------------------------------------------------------------
 
-    /// Store a value.  Writing to `output` also prints to stdout.
+    /// Store a value.
     ///
     /// For **root variables** (no `/` in the name) two metadata sub-variables
     /// are maintained automatically:
@@ -56,11 +56,6 @@ impl Evaluator {
     /// Sub-variables (names that contain `/`) are stored as-is with no
     /// automatic metadata so that internal slots like `{r/index}` stay clean.
     pub fn set_var(&mut self, name: &str, value: String) {
-        if name == "output" {
-            self.output_buffer.push(value.clone());
-            #[cfg(not(target_arch = "wasm32"))]
-            println!("{}", value);
-        }
         // Auto-maintain metadata only for root variables.
         if !name.contains('/') {
             let length = value.chars().count();
@@ -234,7 +229,7 @@ impl Evaluator {
     /// # Direct use → three separate arguments:
     /// {joined} implode " / " {colors}   # same as implode " / " "red" "green" "blue"
     /// # Inside a string → single space-joined value (handled by interpolate):
-    /// {output} = "colors: {colors}"     # prints: colors: red green blue
+    /// echo "colors: {colors}"           # prints: colors: red green blue
     /// ```
     pub fn eval_params(&self, params: &[Param]) -> Vec<String> {
         let mut result = Vec::new();
@@ -444,7 +439,6 @@ impl Evaluator {
                 })
                 .collect();
             for (key, val) in sub_vars {
-                // Bypass set_var: {output/N} shouldn't trigger print.
                 self.variables.insert(key, val);
             }
 
