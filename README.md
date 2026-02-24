@@ -52,15 +52,24 @@ echo '{output} = "Hello, World!"' | ./target/release/bucl
 
 ## WebAssembly / Interactive Demo
 
-BUCL can be compiled to WebAssembly and run entirely in the browser. Try the **[live demo](https://terraloader.github.io/bucl-rust/demo/js/)** — or build it locally from the `demo/` directory. The playground includes a code editor, output panel, and six built-in example scripts.
+BUCL can be compiled to WebAssembly and run entirely in the browser. Both playgrounds include a code editor, output panel, and six built-in example scripts.
 
-### Build the WASM module
+| Demo | Engine | Link |
+|------|--------|------|
+| **JS demo** | Pure JavaScript port | **[live demo](https://terraloader.github.io/bucl-rust/demo/js/)** |
+| **WASM demo** | Prebuilt Rust → WebAssembly | **[live demo](https://terraloader.github.io/bucl-rust/demo/wasm/)** |
+
+The WASM binary is checked into the repo at `docs/demo/wasm/pkg/bucl_wasm.wasm`, so the demo works out of the box — no local Rust toolchain needed.
+
+### Rebuilding the WASM module
+
+After changing the Rust source you can rebuild the `.wasm`:
 
 **Option A — raw `.wasm` (no extra tooling beyond Rust):**
 
 ```bash
 rustup target add wasm32-unknown-unknown
-make wasm-raw          # writes demo/pkg/bucl_wasm.wasm
+make wasm-raw          # writes docs/demo/wasm/pkg/bucl_wasm.wasm
 make demo              # serves on http://localhost:8000
 ```
 
@@ -89,8 +98,8 @@ make demo
 | `wasm`      | WASM + JS glue via wasm-pack (release, optimised)         |
 | `wasm-dev`  | WASM + JS glue via wasm-pack (dev, no wasm-opt)           |
 | `wasm-raw`  | Raw `.wasm` via `cargo build` only (no wasm-pack needed)  |
-| `demo`      | Serve `demo/` on `http://localhost:8000`                  |
-| `clean`     | Remove `target/` and `demo/pkg/`                          |
+| `demo`      | Serve `docs/demo/` on `http://localhost:8000`             |
+| `clean`     | Remove `target/` and `docs/demo/wasm/pkg/`                |
 
 ### WASM limitations
 
@@ -415,8 +424,14 @@ bucl-rust/
 │   ├── implode.bucl
 │   ├── maxlength.bucl
 │   └── slice.bucl
-├── demo/
-│   └── index.html       # Self-contained BUCL Playground (runs in browser via WASM)
+├── docs/demo/
+│   ├── js/
+│   │   ├── index.html   # JS Playground (pure JavaScript interpreter)
+│   │   └── bucl.js      # JavaScript port of the BUCL engine
+│   └── wasm/
+│       ├── index.html   # WASM Playground (runs prebuilt Rust via WebAssembly)
+│       └── pkg/
+│           └── bucl_wasm.wasm  # Prebuilt WASM binary (checked in)
 ├── examples/
 │   ├── hello.bucl
 │   └── primitives_test.bucl
