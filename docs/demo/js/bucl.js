@@ -155,7 +155,6 @@ function BuclEval() {
 }
 
 BuclEval.prototype.setVar = function(name, val) {
-  if (name === 'output') this.out.push(val);
   if (name.indexOf('/') === -1) {
     this.vars[name + '/length'] = String(Array.from(val).length);
     this.vars[name + '/count']  = '1';
@@ -252,6 +251,7 @@ BuclEval.prototype.exec = function(stmt) {
 BuclEval.prototype.dispatch = function(fn, tgt, args, block, cont) {
   switch (fn) {
     case '=':        return this.doAssign(tgt, args);
+    case 'echo':     { var v = args.join(' '); this.out.push(v); return undefined; }
     case 'if':
     case 'elseif':   return this.doIf(args, block, cont);
     case 'else':     if (block) this.runStmts(block); return undefined;

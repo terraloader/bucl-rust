@@ -1,23 +1,23 @@
 {p} strpos "hello world" "world"
-{output} = "strpos: {p}"
+echo "strpos: {p}"
 
 # Comparison operators in if
 if "9" > "3"
-	{output} = "9 > 3: true"
+	echo "9 > 3: true"
 if "1" < "5"
-	{output} = "1 < 5: true"
+	echo "1 < 5: true"
 if "5" >= "5"
-	{output} = "5 >= 5: true"
+	echo "5 >= 5: true"
 if "4" <= "5"
-	{output} = "4 <= 5: true"
+	echo "4 <= 5: true"
 if "3" != "4"
-	{output} = "3 != 4: true"
+	echo "3 != 4: true"
 
 {x} = "hello"
 {v} getvar "x"
-{output} = "getvar x: {v}"
+echo "getvar x: {v}"
 
 # nested variable ref: {parts/{i}} where {i} is computed at runtime
 {parts} = "alpha" "beta" "gamma"
 {i} = "1"
-{output} = "parts/{i} = {parts/{i}}"
+echo "parts/{i} = {parts/{i}}"

@@ -9,10 +9,10 @@
 ///
 /// ```bucl
 /// {word} = "hello"
-/// {output} = {word/0}     # h
-/// {output} = {word/4}     # o
-/// {output} = {word/count} # 1
-/// {output} = {word/length}# 5
+/// echo {word/0}      # h
+/// echo {word/4}      # o
+/// echo {word/count}  # 1
+/// echo {word/length} # 5
 /// ```
 ///
 /// ## Multiple strings  →  element indexing
@@ -21,10 +21,10 @@
 ///
 /// ```bucl
 /// {parts} = "hello" "world"
-/// {output} = {parts/0}    # hello
-/// {output} = {parts/1}    # world
-/// {output} = {parts}      # helloworld
-/// {output} = {parts/count}# 2
+/// echo {parts/0}     # hello
+/// echo {parts/1}     # world
+/// echo {parts}       # helloworld
+/// echo {parts/count} # 2
 /// ```
 ///
 /// ## Arbitrary named sub-variables
