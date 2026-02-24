@@ -101,7 +101,7 @@ make demo
 ### WASM limitations
 
 - **No filesystem access** — `readfile` and `writefile` are not available in the browser build.
-- The standard library functions (`reverse`, `explode`, `implode`, `maxlength`, `slice`) are embedded directly into the WASM binary, so no separate file loading is required.
+- The standard library functions (`strpos`, `substr`, `reverse`, `explode`, `implode`, `maxlength`, `slice`) are embedded directly into the WASM binary, so no separate file loading is required.
 
 ---
 
@@ -291,8 +291,6 @@ if {n} > "10"
 |------------|--------------------------------------|-------------------------------------------------------|
 | `=`        | `{target} = val ...`                 | Assign (concatenate args) to variable                 |
 | `echo`     | `echo arg ...`                       | Print args (space-joined) to stdout                   |
-| `substr`   | `{t} substr start len str`           | Extract substring at `start` for `len` characters     |
-| `strpos`   | `{t} strpos haystack needle`         | Position of `needle` in `haystack` (-1 if not found)  |
 | `math`     | `{t} math "expr"`                    | Evaluate arithmetic expression (`+` `-` `*` `/` `%`)  |
 | `random`   | `{t} random min max`                 | Random integer in range [min, max]                    |
 | `readfile` | `{t} readfile path`                  | Read file contents into variable                      |
@@ -322,13 +320,15 @@ The `{args/N}` variables allow dynamic positional access via `{args/{i}}`.
 
 The bundled `functions/` directory includes:
 
-| Function     | Description                                |
-|--------------|--------------------------------------------|
-| `reverse`    | Reverse a string                           |
-| `explode`    | Split a string by a delimiter (returns array) |
-| `implode`    | Join arguments with a delimiter            |
-| `maxlength`  | Return the length of the longest argument  |
-| `slice`      | Extract a slice of arguments               |
+| Function     | Description                                               |
+|--------------|-----------------------------------------------------------|
+| `strpos`     | Position of needle in haystack (-1 if not found)          |
+| `substr`     | Extract substring at `start` for `len` characters         |
+| `reverse`    | Reverse a string                                          |
+| `explode`    | Split a string by a delimiter (returns array)             |
+| `implode`    | Join arguments with a delimiter                           |
+| `maxlength`  | Return the length of the longest argument                 |
+| `slice`      | Extract a slice of arguments                              |
 
 ---
 
@@ -421,6 +421,8 @@ bucl-rust/
 │   ├── error.rs         # Error types (Parse, Runtime, IO, UnknownFunction)
 │   └── functions/       # Built-in function implementations (Rust)
 ├── functions/           # Standard library functions (BUCL)
+│   ├── strpos.bucl
+│   ├── substr.bucl
 │   ├── reverse.bucl
 │   ├── explode.bucl
 │   ├── implode.bucl

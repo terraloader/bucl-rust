@@ -1,0 +1,22 @@
+# substr — extract a substring using character indexing.
+#
+# Arguments: start (0-based char index), length (num chars), string.
+# Returns: the extracted substring.
+#
+# Out-of-range characters resolve to "" so no explicit clamping is needed:
+# if start >= string length or start+length exceeds it, the excess is empty.
+#
+# Usage:
+#   {res} substr 0 3 "AAAaaa"        # {res} = "AAA"
+#   {res} substr 6 5 "hello world"   # {res} = "world"
+
+{_start} = {0}
+{_len} = {1}
+{_str} = {2}
+{_result} = ""
+
+{r} repeat {_len}
+	{_i} math "{_start}+{r/index}-1"
+	{_result} = "{_result}{_str/{_i}}"
+
+{return} = {_result}
