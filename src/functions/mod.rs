@@ -38,17 +38,13 @@ pub trait BuclFunction: Send + Sync {
 // ---------------------------------------------------------------------------
 
 pub mod assign;    // =
-pub mod count;     // count
 pub mod each;      // each
 pub mod echo;      // echo — print to output
-pub mod getvar;    // getvar — read a variable by computed name
 pub mod if_fn;     // if / elseif / else
-pub mod length;    // length
 pub mod math;      // math
 pub mod random;    // random
 pub mod readfile;  // readfile
 pub mod repeat;    // repeat
-pub mod setvar;    // setvar — write a variable by computed name
 pub mod strpos;    // strpos — find substring position
 pub mod substr;    // substr — extract substring by index + length
 pub mod writefile; // writefile
@@ -64,17 +60,13 @@ pub mod writefile; // writefile
 /// runtime — no registration needed here.
 pub fn register_all(eval: &mut Evaluator) {
     assign::register(eval);
-    count::register(eval);
     each::register(eval);
     echo::register(eval);
-    getvar::register(eval);
     if_fn::register(eval);
-    length::register(eval);
     math::register(eval);
     random::register(eval);
     readfile::register(eval);
     repeat::register(eval);
-    setvar::register(eval);
     strpos::register(eval);
     substr::register(eval);
     writefile::register(eval);

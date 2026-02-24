@@ -27,7 +27,7 @@ if {_end} < "0"
 
 	if {_i} >= {_start}
 		if {_i} < {_end}
-			{_item} getvar {_actual}
+			{_item} = {args/{_actual}}
 			if {_result} = ""
 				{_result} = {_item}
 			else

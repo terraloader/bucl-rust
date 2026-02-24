@@ -13,10 +13,6 @@ if "4" <= "5"
 if "3" != "4"
 	echo "3 != 4: true"
 
-{x} = "hello"
-{v} getvar "x"
-echo "getvar x: {v}"
-
 # nested variable ref: {parts/{i}} where {i} is computed at runtime
 {parts} = "alpha" "beta" "gamma"
 {i} = "1"

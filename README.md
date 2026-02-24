@@ -228,8 +228,8 @@ The general syntax for calling a function is:
 - Some functions accept an indented block (body) on the following lines.
 
 ```
-{len} length "Hello" "World"
-echo "Total length: {len}"
+{word} = "Hello"
+echo "Length: {word/length}"
 ```
 
 ### Control Flow
@@ -291,8 +291,6 @@ if {n} > "10"
 |------------|--------------------------------------|-------------------------------------------------------|
 | `=`        | `{target} = val ...`                 | Assign (concatenate args) to variable                 |
 | `echo`     | `echo arg ...`                       | Print args (space-joined) to stdout                   |
-| `length`   | `{t} length arg ...`                 | Total character length of all arguments               |
-| `count`    | `{t} count arg ...`                  | Number of arguments                                   |
 | `substr`   | `{t} substr start len str`           | Extract substring at `start` for `len` characters     |
 | `strpos`   | `{t} strpos haystack needle`         | Position of `needle` in `haystack` (-1 if not found)  |
 | `math`     | `{t} math "expr"`                    | Evaluate arithmetic expression (`+` `-` `*` `/` `%`)  |
@@ -302,8 +300,6 @@ if {n} > "10"
 | `if`       | `if val op val` + block              | Conditional block (`=` `!=` `>` `<` `>=` `<=`)        |
 | `repeat`   | `{t} repeat N` + block               | Loop N times                                          |
 | `each`     | `{t} each arg ...` + block           | Iterate over arguments                                |
-
-> **`getvar` / `setvar`** exist as low-level built-ins for reading/writing a variable whose name is only known at runtime. They are rarely needed in application scripts: use nested variable references (`{var/{i}}`) for dynamic lookup, and the `{args/N}` convention (see below) inside BUCL functions to access positional arguments by computed index.
 
 ---
 
@@ -322,7 +318,7 @@ Inside a function file, the following variables are available:
 | `{target}`        | Name of the caller's target variable                 |
 | `{return}`        | Set this to return a value                           |
 
-The `{args/N}` variables allow dynamic positional access via `{args/{i}}` without needing `getvar`.
+The `{args/N}` variables allow dynamic positional access via `{args/{i}}`.
 
 The bundled `functions/` directory includes:
 

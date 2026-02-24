@@ -364,9 +364,9 @@ impl Evaluator {
     ///
     /// ## Return convention
     /// - Set `{return}` to return a single value.
-    /// - Set `{return/0}`, `{return/1}`, … (via `setvar`) to return indexed
-    ///   sub-values; these are copied to `{target/0}`, `{target/1}`, … in the
-    ///   caller's scope automatically.
+    /// - Set `{return/0}`, `{return/1}`, … to return indexed sub-values;
+    ///   these are copied to `{target/0}`, `{target/1}`, … in the caller's
+    ///   scope automatically.
     fn call_bucl_function(
         &mut self,
         name: &str,
