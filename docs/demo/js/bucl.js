@@ -362,14 +362,19 @@ BuclEval.prototype.callBuclFn = function(name, tgt, args) {
   if (tgt) child.vars['target'] = tgt;
   child.runStmts(stmts);
   for (var i = 0; i < child.out.length; i++) this.out.push(child.out[i]);
+  var retVal = child.vars['return'];
   if (tgt) {
+    // Set primary return value first (auto-sets count=1), then copy
+    // sub-vars so that {return/count} etc. can override auto-metadata.
+    if (retVal !== undefined) this.setVar(tgt, retVal);
     var keys = Object.keys(child.vars);
     for (var i = 0; i < keys.length; i++) {
       if (keys[i].indexOf('return/') === 0)
         this.vars[tgt + '/' + keys[i].slice(7)] = child.vars[keys[i]];
     }
+    return undefined;
   }
-  return child.vars['return'];
+  return retVal;
 };
 
 // ── Standard library (embedded BUCL source) ───────────────────────────────
@@ -398,6 +403,7 @@ var BUCL_STDLIB = {
     '{_count} = "0"',
     '{_done} = "0"',
     '{_remaining} = {1}',
+    '{_concat} = ""',
     '{_iters} math "{_text_len}+1"',
     '{r} repeat {_iters}',
     '\tif {_done} = "0"',
@@ -405,15 +411,18 @@ var BUCL_STDLIB = {
     '\t\tif {_pos} > "-1"',
     '\t\t\t{_part} substr 0 {_pos} {_remaining}',
     '\t\t\t{return/{_count}} = {_part}',
+    '\t\t\t{_concat} = "{_concat}{_part}"',
     '\t\t\t{_count} math "{_count}+1"',
     '\t\t\t{_after} math "{_pos}+{_sep_len}"',
     '\t\t\t{_rem_len} length {_remaining}',
     '\t\t\t{_remaining} substr {_after} {_rem_len} {_remaining}',
     '\t\telse',
     '\t\t\t{return/{_count}} = {_remaining}',
+    '\t\t\t{_concat} = "{_concat}{_remaining}"',
     '\t\t\t{_count} math "{_count}+1"',
     '\t\t\t{_done} = "1"',
-    '{return} = {_count}'
+    '{return} = {_concat}',
+    '{return/count} = {_count}'
   ].join('\n'),
 
   implode: [

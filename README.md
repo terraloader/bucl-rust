@@ -330,7 +330,7 @@ The bundled `functions/` directory includes:
 | Function     | Description                                |
 |--------------|--------------------------------------------|
 | `reverse`    | Reverse a string                           |
-| `explode`    | Split a string by a delimiter              |
+| `explode`    | Split a string by a delimiter (returns array) |
 | `implode`    | Join arguments with a delimiter            |
 | `maxlength`  | Return the length of the longest argument  |
 | `slice`      | Extract a slice of arguments               |
@@ -364,9 +364,16 @@ The bundled `functions/` directory includes:
 ### String Split and Join
 
 ```
+# explode returns an array — {parts/count} is the number of elements,
+# and each element is accessible as {parts/0}, {parts/1}, …
 {parts} explode "-" "one-two-three"
+{output} = "count: {parts/count}"
 {output} = "part 0: {parts/0}"
 {output} = "part 1: {parts/1}"
+
+# The array expands to separate arguments when used directly:
+{rejoined} implode " + " {parts}
+{output} = {rejoined}
 
 # Literal items
 {joined} implode ", " "alpha" "beta" "gamma"
