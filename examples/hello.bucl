@@ -49,7 +49,8 @@ else
 {output} = "implode: {joined}"
 
 {parts} explode "-" "one-two-three"
-{output} = "explode count: {parts}"
+{output} = "explode parts: {parts}"
+{output} = "explode count: {parts/count}"
 {output} = "part 0: {parts/0}"
 {output} = "part 1: {parts/1}"
 {output} = "part 2: {parts/2}"

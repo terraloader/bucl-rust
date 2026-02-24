@@ -423,8 +423,17 @@ impl Evaluator {
         // Extract the primary return value.
         let return_val = child.variables.get("return").cloned();
 
-        // Copy indexed sub-variables {return/N} → {target/N} in caller scope.
+        // Copy return value and indexed sub-variables to the caller's scope.
+        //
+        // Order matters: call set_var FIRST (which auto-sets count=1), then
+        // copy sub-variables so that {return/count} etc. can override the
+        // auto-metadata.  This allows BUCL functions to return arrays by
+        // setting {return}, {return/count}, and {return/0}, {return/1}, …
         if let Some(prefix) = target {
+            if let Some(ref val) = return_val {
+                self.set_var(prefix, val.clone());
+            }
+
             let sub_vars: Vec<(String, String)> = child
                 .variables
                 .iter()
@@ -438,8 +447,12 @@ impl Evaluator {
                 // Bypass set_var: {output/N} shouldn't trigger print.
                 self.variables.insert(key, val);
             }
-        }
 
-        Ok(return_val)
+            // We handled set_var ourselves; return None so evaluate_statement
+            // does not call set_var again.
+            Ok(None)
+        } else {
+            Ok(return_val)
+        }
     }
 }

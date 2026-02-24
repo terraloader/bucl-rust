@@ -1,12 +1,13 @@
 # explode — split a string on a separator.
 #
 # Arguments: separator (arg 0), text to split (arg 1).
-# Returns: number of parts (stored in target variable).
-# Side-effect: sets {target/0}, {target/1}, … to each part.
+# Returns: array of parts (target variable becomes a multi-arg array).
+# Side-effect: sets {target/0}, {target/1}, … to each part;
+#              {target/count} holds the number of parts.
 #
 # Usage:
 #   {parts} explode "," "one,two,three"
-#   # {parts}   = "3"
+#   # {parts/count} = "3"
 #   # {parts/0} = "one"
 #   # {parts/1} = "two"
 #   # {parts/2} = "three"
@@ -18,6 +19,7 @@
 {_count} = "0"
 {_done} = "0"
 {_remaining} = {1}
+{_concat} = ""
 
 # We need at most text_len+1 iterations (one per separator + final piece).
 {_iters} math "{_text_len}+1"
@@ -29,6 +31,7 @@
 			# Separator found: slice off the part before it.
 			{_part} substr 0 {_pos} {_remaining}
 			{return/{_count}} = {_part}
+			{_concat} = "{_concat}{_part}"
 			{_count} math "{_count}+1"
 			{_after} math "{_pos}+{_sep_len}"
 			{_rem_len} length {_remaining}
@@ -36,7 +39,9 @@
 		else
 			# No more separators: store the final piece.
 			{return/{_count}} = {_remaining}
+			{_concat} = "{_concat}{_remaining}"
 			{_count} math "{_count}+1"
 			{_done} = "1"
 
-{return} = {_count}
+{return} = {_concat}
+{return/count} = {_count}
