@@ -45,8 +45,6 @@ pub mod math;      // math
 pub mod random;    // random
 pub mod readfile;  // readfile
 pub mod repeat;    // repeat
-pub mod strpos;    // strpos — find substring position
-pub mod substr;    // substr — extract substring by index + length
 pub mod writefile; // writefile
 
 // ---------------------------------------------------------------------------
@@ -55,9 +53,9 @@ pub mod writefile; // writefile
 
 /// Register every core built-in with the evaluator.
 ///
-/// Higher-level functions (`explode`, `implode`, `reverse`, `maxlength`,
-/// `slice`, …) live in `functions/*.bucl` and are loaded automatically at
-/// runtime — no registration needed here.
+/// Higher-level functions (`strpos`, `substr`, `explode`, `implode`,
+/// `reverse`, `maxlength`, `slice`, …) live in `functions/*.bucl` and are
+/// loaded automatically at runtime — no registration needed here.
 pub fn register_all(eval: &mut Evaluator) {
     assign::register(eval);
     each::register(eval);
@@ -67,7 +65,5 @@ pub fn register_all(eval: &mut Evaluator) {
     random::register(eval);
     readfile::register(eval);
     repeat::register(eval);
-    strpos::register(eval);
-    substr::register(eval);
     writefile::register(eval);
 }

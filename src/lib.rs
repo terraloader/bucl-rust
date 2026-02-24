@@ -9,9 +9,9 @@
 /// | `bucl_free(ptr, size)` | Free a buffer previously returned by this module |
 /// | `bucl_run(src_ptr, src_len) -> *mut u8` | Run BUCL; returns `[u32-le len][utf-8 bytes]` |
 ///
-/// The standard library BUCL functions (`reverse`, `explode`, `implode`,
-/// `maxlength`, `slice`) are embedded at compile time via `include_str!` so
-/// they are available without a filesystem.
+/// The standard library BUCL functions (`strpos`, `substr`, `reverse`,
+/// `explode`, `implode`, `maxlength`, `slice`) are embedded at compile time
+/// via `include_str!` so they are available without a filesystem.
 ///
 /// On WASM the `random` function needs a `js_math_random` import from the host
 /// (see `demo/index.html` for the JS glue).
@@ -104,6 +104,8 @@ fn run_internal(source: &str) -> String {
 /// available without a filesystem (essential for WASM builds).
 fn embed_stdlib(eval: &mut Evaluator) {
     let stdlib: &[(&str, &str)] = &[
+        ("substr",    include_str!("../functions/substr.bucl")),
+        ("strpos",    include_str!("../functions/strpos.bucl")),
         ("reverse",   include_str!("../functions/reverse.bucl")),
         ("explode",   include_str!("../functions/explode.bucl")),
         ("implode",   include_str!("../functions/implode.bucl")),

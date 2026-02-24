@@ -1,0 +1,29 @@
+# strpos — find the first occurrence of needle in a string.
+#
+# Arguments: text (arg 0), needle (arg 1).
+# Returns: 0-based character index of the first match, or "-1" if not found.
+#
+# Algorithm: slide a window of needle_len characters across the text and
+# compare each candidate substring against the needle.  Once a match is
+# found the result is locked and subsequent iterations are skipped.
+#
+# Usage:
+#   {p} strpos "hello world" "world"   # {p} = "6"
+#   {p} strpos "hello" "xyz"           # {p} = "-1"
+
+{_text} = {0}
+{_needle} = {1}
+{_text_len} = {_text/length}
+{_needle_len} = {_needle/length}
+{_result} = "-1"
+{_found} = "0"
+
+{r} repeat {_text_len}
+	if {_found} = "0"
+		{_i} math "{r/index}-1"
+		{_candidate} substr {_i} {_needle_len} {_text}
+		if {_candidate} = {_needle}
+			{_result} = {_i}
+			{_found} = "1"
+
+{return} = {_result}
