@@ -392,45 +392,31 @@ echo "(paused 0.25 s)"`,
 };
 
 // ---------------------------------------------------------------------------
-// WASM bootstrap
+// WASM bootstrap via Web Worker
+// ---------------------------------------------------------------------------
+// The evaluator runs in a dedicated Web Worker so the main thread — and the
+// UI — are never blocked, even during long sleep calls.
+// worker.js handles WASM instantiation and provides js_sleep via
+// Atomics.wait (real OS sleep) with a spin-loop fallback.
 // ---------------------------------------------------------------------------
 const statusBadge = document.getElementById('status-badge');
 const runBtn      = document.getElementById('run-btn');
 const editor      = document.getElementById('editor');
 const outputEl    = document.getElementById('output');
 
-let wasmExports = null;
+const RUN_BTN_HTML =
+  '<svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor">' +
+  '<polygon points="2,1 10,6 2,11"/></svg> Run';
 
-const enc = new TextEncoder();
-const dec = new TextDecoder();
+const worker = new Worker('worker.js');
 
-/**
- * Instantiate the raw .wasm built by `make wasm-raw`.
- * WASM imports: env.js_math_random — feeds Math.random() to the random fn.
- */
-async function loadWasm() {
-  const imports = {
-    env: {
-      js_math_random: () => Math.random(),
-      // Synchronous busy-wait sleep for the WASM evaluator.
-      // Date.now() spin-loop is the only way to block synchronously on the
-      // main thread without SharedArrayBuffer / Atomics.wait.
-      js_sleep: (ms) => {
-        const end = Date.now() + ms;
-        while (Date.now() < end) { /* spin */ }
-      },
-    },
-  };
-
-  try {
-    const response = await fetch('pkg/bucl_wasm.wasm');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const { instance } = await WebAssembly.instantiateStreaming(response, imports);
-    wasmExports = instance.exports;
+worker.onmessage = ({ data }) => {
+  if (data.type === 'ready') {
     statusBadge.textContent = 'ready';
     statusBadge.className   = 'ready';
     runBtn.disabled = false;
-  } catch (err) {
+
+  } else if (data.type === 'load-error') {
     statusBadge.textContent = 'not built';
     statusBadge.className   = 'error';
     outputEl.textContent    =
@@ -442,40 +428,11 @@ async function loadWasm() {
       '//   make wasm-raw\n' +
       '//   make demo          # serves on localhost:8000\n' +
       '//\n' +
-      '// Error: ' + err.message;
+      '// Error: ' + data.message;
     outputEl.className = 'has-error';
-  }
-}
 
-/** Call bucl_run with a source string; return the output string. */
-function runBucl(source) {
-  const { memory, bucl_alloc, bucl_free, bucl_run } = wasmExports;
-
-  const srcBytes = enc.encode(source);
-  const srcPtr   = bucl_alloc(srcBytes.length);
-  new Uint8Array(memory.buffer, srcPtr, srcBytes.length).set(srcBytes);
-
-  const outPtr = bucl_run(srcPtr, srcBytes.length);
-  bucl_free(srcPtr, srcBytes.length);
-
-  // Output layout: [u32-le length][utf-8 bytes]
-  const view    = new DataView(memory.buffer, outPtr);
-  const outLen  = view.getUint32(0, /*littleEndian=*/true);
-  const outBytes = new Uint8Array(memory.buffer, outPtr + 4, outLen);
-  const output  = dec.decode(outBytes);
-  bucl_free(outPtr, 4 + outLen);
-
-  return output;
-}
-
-// ---------------------------------------------------------------------------
-// UI handlers
-// ---------------------------------------------------------------------------
-runBtn.addEventListener('click', () => {
-  if (!wasmExports) return;
-  const src = editor.value;
-  try {
-    const out = runBucl(src);
+  } else if (data.type === 'result') {
+    const out = data.output;
     if (!out.trim()) {
       outputEl.textContent = '// (no output)';
       outputEl.className   = 'empty';
@@ -484,10 +441,20 @@ runBtn.addEventListener('click', () => {
       outputEl.className   = out.startsWith('[error]') || out.startsWith('[parse error]')
         ? 'has-error' : '';
     }
-  } catch (err) {
-    outputEl.textContent = '[runtime error] ' + err.message;
-    outputEl.className   = 'has-error';
+    runBtn.innerHTML = RUN_BTN_HTML;
+    runBtn.disabled  = false;
   }
+};
+
+// ---------------------------------------------------------------------------
+// UI handlers
+// ---------------------------------------------------------------------------
+runBtn.addEventListener('click', () => {
+  runBtn.disabled  = true;
+  runBtn.innerHTML = 'Running\u2026';
+  outputEl.textContent = '// running\u2026';
+  outputEl.className   = 'empty';
+  worker.postMessage({ type: 'run', source: editor.value });
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {
@@ -525,9 +492,6 @@ document.querySelectorAll('.example-btn').forEach(btn => {
 
 // Pre-load hello example
 editor.value = EXAMPLES.hello;
-
-// Boot
-loadWasm();
 </script>
 
 </body>
