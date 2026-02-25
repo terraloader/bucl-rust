@@ -29,6 +29,16 @@ function js_sleep(ms) {
   }
 }
 
+// ── print host function ──────────────────────────────────────────────────────
+// Called by the WASM echo built-in for each output line.
+// postMessage queues the line to the main thread immediately — the main
+// thread is never blocked, so it can update the DOM straight away.
+
+function js_print(ptr, len) {
+  const bytes = new Uint8Array(wasmExports.memory.buffer, ptr, len);
+  postMessage({ type: 'output', line: dec.decode(bytes) });
+}
+
 // ── WASM bootstrap ──────────────────────────────────────────────────────────
 
 let wasmExports = null;
@@ -37,6 +47,7 @@ const imports = {
   env: {
     js_math_random: () => Math.random(),
     js_sleep,
+    js_print,
   },
 };
 
