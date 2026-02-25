@@ -394,6 +394,13 @@ async function loadWasm() {
   const imports = {
     env: {
       js_math_random: () => Math.random(),
+      // Synchronous busy-wait sleep for the WASM evaluator.
+      // Date.now() spin-loop is the only way to block synchronously on the
+      // main thread without SharedArrayBuffer / Atomics.wait.
+      js_sleep: (ms) => {
+        const end = Date.now() + ms;
+        while (Date.now() < end) { /* spin */ }
+      },
     },
   };
 

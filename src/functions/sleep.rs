@@ -8,8 +8,19 @@
 /// sleep 2.75     # pause for 2.75 seconds
 /// ```
 ///
-/// On WASM targets this is a no-op (synchronous sleep is not available in a
-/// browser environment).
+/// On native targets this uses `std::thread::sleep`.
+///
+/// On WASM targets a synchronous busy-wait is performed via `js_sleep(ms)`,
+/// which must be provided by the JavaScript host (see `docs/demo/wasm/index.html`).
+/// The host implements it as a `Date.now()` spin-loop so that the synchronous
+/// evaluator can block without requiring an async runtime.
+
+// WASM: import a host-provided busy-wait from JavaScript.
+#[cfg(target_arch = "wasm32")]
+extern "C" {
+    fn js_sleep(ms: f64);
+}
+
 use crate::ast::Statement;
 use crate::error::{BuclError, Result};
 use crate::evaluator::Evaluator;
@@ -46,6 +57,11 @@ impl BuclFunction for Sleep {
 
         #[cfg(not(target_arch = "wasm32"))]
         std::thread::sleep(std::time::Duration::from_secs_f64(secs));
+
+        #[cfg(target_arch = "wasm32")]
+        unsafe {
+            js_sleep(secs * 1000.0);
+        }
 
         Ok(None)
     }
