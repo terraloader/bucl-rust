@@ -1,19 +1,12 @@
-/// `sleep` — pause execution for the given number of seconds.
-///
-/// The argument is a floating-point number so fractional seconds are supported.
-///
-/// ```bucl
-/// sleep 1        # pause for 1 second
-/// sleep 0.5      # pause for half a second
-/// sleep 2.75     # pause for 2.75 seconds
-/// ```
-///
-/// On native targets this uses `std::thread::sleep`.
-///
-/// On WASM targets a synchronous busy-wait is performed via `js_sleep(ms)`,
-/// which must be provided by the JavaScript host (see `docs/demo/wasm/index.html`).
-/// The host implements it as a `Date.now()` spin-loop so that the synchronous
-/// evaluator can block without requiring an async runtime.
+// `sleep` — pause execution for the given number of seconds.
+//
+// The argument is a floating-point number so fractional seconds are supported.
+//
+// On native targets this uses std::thread::sleep.
+// On WASM targets a synchronous busy-wait is performed via js_sleep(ms),
+// provided by the JavaScript host (see docs/demo/wasm/index.html).
+// The host implements it as a Date.now() spin-loop so that the synchronous
+// evaluator can block without requiring an async runtime.
 
 // WASM: import a host-provided busy-wait from JavaScript.
 #[cfg(target_arch = "wasm32")]
