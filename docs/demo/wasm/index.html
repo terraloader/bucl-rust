@@ -410,6 +410,10 @@ const RUN_BTN_HTML =
 
 const worker = new Worker('worker.js');
 
+// Tracks whether any echo lines arrived for the current run.
+// Used to distinguish "no output" from "output already shown".
+let hasStreamedOutput = false;
+
 worker.onmessage = ({ data }) => {
   if (data.type === 'ready') {
     statusBadge.textContent = 'ready';
@@ -431,16 +435,32 @@ worker.onmessage = ({ data }) => {
       '// Error: ' + data.message;
     outputEl.className = 'has-error';
 
+  } else if (data.type === 'output') {
+    // Streamed echo line — append to the panel as it arrives.
+    if (!hasStreamedOutput) {
+      outputEl.textContent = data.line;
+      outputEl.className   = '';
+      hasStreamedOutput    = true;
+    } else {
+      outputEl.textContent += '\n' + data.line;
+    }
+
   } else if (data.type === 'result') {
+    // Execution finished.  data.output is empty on success, or an error string.
     const out = data.output;
-    if (!out.trim()) {
+    if (out) {
+      // Error: append after any streamed lines (or show alone).
+      if (hasStreamedOutput) {
+        outputEl.textContent += '\n' + out;
+      } else {
+        outputEl.textContent = out;
+      }
+      outputEl.className = 'has-error';
+    } else if (!hasStreamedOutput) {
       outputEl.textContent = '// (no output)';
       outputEl.className   = 'empty';
-    } else {
-      outputEl.textContent = out;
-      outputEl.className   = out.startsWith('[error]') || out.startsWith('[parse error]')
-        ? 'has-error' : '';
     }
+    // else: streamed output already in DOM — nothing more to do.
     runBtn.innerHTML = RUN_BTN_HTML;
     runBtn.disabled  = false;
   }
@@ -450,8 +470,9 @@ worker.onmessage = ({ data }) => {
 // UI handlers
 // ---------------------------------------------------------------------------
 runBtn.addEventListener('click', () => {
-  runBtn.disabled  = true;
-  runBtn.innerHTML = 'Running\u2026';
+  hasStreamedOutput    = false;
+  runBtn.disabled      = true;
+  runBtn.innerHTML     = 'Running\u2026';
   outputEl.textContent = '// running\u2026';
   outputEl.className   = 'empty';
   worker.postMessage({ type: 'run', source: editor.value });
