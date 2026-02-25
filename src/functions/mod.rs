@@ -45,6 +45,7 @@ pub mod math;      // math
 pub mod random;    // random
 pub mod readfile;  // readfile
 pub mod repeat;    // repeat
+pub mod sleep;     // sleep — pause execution
 pub mod writefile; // writefile
 
 // ---------------------------------------------------------------------------
@@ -65,5 +66,6 @@ pub fn register_all(eval: &mut Evaluator) {
     random::register(eval);
     readfile::register(eval);
     repeat::register(eval);
+    sleep::register(eval);
     writefile::register(eval);
 }

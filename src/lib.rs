@@ -13,7 +13,8 @@
 /// `explode`, `implode`, `maxlength`, `slice`) are embedded at compile time
 /// via `include_str!` so they are available without a filesystem.
 ///
-/// On WASM the `random` function needs a `js_math_random` import from the host
+/// On WASM the `random` function needs a `js_math_random` import and the
+/// `sleep` function needs a `js_sleep` import from the host
 /// (see `demo/index.html` for the JS glue).
 
 mod ast;

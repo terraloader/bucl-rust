@@ -233,6 +233,7 @@
     <button class="example-btn" data-example="loops">Loops</button>
     <button class="example-btn" data-example="random">Random</button>
     <button class="example-btn" data-example="fibonacci">Fibonacci</button>
+    <button class="example-btn" data-example="sleep">Sleep</button>
   </div>
 
   <!-- Editor -->
@@ -307,8 +308,9 @@ echo "substr(0,5): {sub}"
 {pos} strpos "Hello, World!" "World"
 echo "strpos 'World': {pos}"
 
-{len} length "Hello" " " "World"
-echo "length: {len}"
+# Every variable automatically exposes {var/length}
+{word} = "Hello, World!"
+echo "length: {word/length}"
 
 # implode / explode
 {joined} implode " | " "alpha" "beta" "gamma"
@@ -371,6 +373,22 @@ echo "Fibonacci: {a}, {b}"
     echo "  -> {next}"
     {a} = {b}
     {b} = {next}`,
+
+  sleep: `# sleep — pause execution
+# Accepts a float: whole or fractional seconds.
+
+echo "Countdown..."
+{i} repeat 3
+    echo "  {i/index}..."
+    sleep 0.5
+
+echo "Done! (waited 0.5 s between each step)"
+
+sleep 1
+echo "(paused 1 s)"
+
+sleep 0.25
+echo "(paused 0.25 s)"`,
 };
 
 // ---------------------------------------------------------------------------
@@ -394,6 +412,13 @@ async function loadWasm() {
   const imports = {
     env: {
       js_math_random: () => Math.random(),
+      // Synchronous busy-wait sleep for the WASM evaluator.
+      // Date.now() spin-loop is the only way to block synchronously on the
+      // main thread without SharedArrayBuffer / Atomics.wait.
+      js_sleep: (ms) => {
+        const end = Date.now() + ms;
+        while (Date.now() < end) { /* spin */ }
+      },
     },
   };
 
