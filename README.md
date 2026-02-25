@@ -293,6 +293,7 @@ if {n} > "10"
 | `echo`     | `echo arg ...`                       | Print args (space-joined) to stdout                   |
 | `math`     | `{t} math "expr"`                    | Evaluate arithmetic expression (`+` `-` `*` `/` `%`)  |
 | `random`   | `{t} random min max`                 | Random integer in range [min, max]                    |
+| `sleep`    | `sleep seconds`                      | Pause execution for the given number of seconds (float) |
 | `readfile` | `{t} readfile path`                  | Read file contents into variable                      |
 | `writefile`| `writefile path content`             | Write content to file                                 |
 | `if`       | `if val op val` + block              | Conditional block (`=` `!=` `>` `<` `>=` `<=`)        |
