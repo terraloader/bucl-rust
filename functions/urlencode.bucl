@@ -1,0 +1,42 @@
+# urlencode — percent-encode a string for safe use in a URL (RFC 3986).
+#
+# Arguments: one or more strings (concatenated before encoding).
+# Returns:   the URL-encoded string.
+#
+# RFC 3986 unreserved characters (A-Z a-z 0-9 - _ . ~) pass through
+# unchanged.  Every other byte is encoded as %XX (uppercase hex) via tohex.
+#
+# Usage:
+#   {enc} urlencode "hello world"
+#   # {enc} = "hello%20world"
+#
+#   {enc} urlencode "foo=bar&baz=qux"
+#   # {enc} = "foo%3Dbar%26baz%3Dqux"
+#
+#   {enc} urlencode "price: $9.99"
+#   # {enc} = "price%3A%20%249.99"
+
+# Concatenate all arguments into {_text} (same pattern as reverse).
+{_text} = ""
+{r} repeat {argc}
+	{_i} math "{r/index}-1"
+	{_arg} = {args/{_i}}
+	{_text} = "{_text}{_arg}"
+
+{_len} = {_text/length}
+{_result} = ""
+
+# RFC 3986 §2.3 unreserved characters — never percent-encoded.
+{_unreserved} = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
+
+{r} repeat {_len}
+	{_i} math "{r/index}-1"
+	{_char} substr {_i} 1 {_text}
+	{_p} strpos {_unreserved} {_char}
+	if {_p} > "-1"
+		{_result} = "{_result}{_char}"
+	else
+		{_h} tohex {_char}
+		{_result} = "{_result}%{_h}"
+
+{return} = {_result}

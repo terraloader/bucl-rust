@@ -1,0 +1,80 @@
+# tohex — convert a single character to its 2-digit uppercase hex string.
+#
+# Argument: {0} = a single character.
+# Returns:  the 2-character uppercase hex representation of the byte value,
+#           e.g. " " → "20",  "A" → "41",  "/" → "2F".
+#
+# Covers printable ASCII (0x20–0x7E). Returns "" for unrecognised input.
+#
+# Algorithm: the printable ASCII table is split into 6 groups of 16 bytes
+# that each share the same high nibble (2–7).  strpos locates the character
+# within its group; that position *is* the low nibble — no division needed.
+#
+# Usage:
+#   {h} tohex " "   # {h} = "20"
+#   {h} tohex "A"   # {h} = "41"
+#   {h} tohex "/"   # {h} = "2F"
+
+{_char} = {0}
+{_hex} = "0123456789ABCDEF"
+{_hi} = ""
+{_lo} = ""
+
+# 0x7B–0x7E: { | } ~ cannot appear inside a BUCL quoted-string literal
+# (curly braces are variable delimiters), so handle them up front.
+if {_char} = "{"
+	{_hi} = "7"
+	{_lo} = "B"
+elseif {_char} = "|"
+	{_hi} = "7"
+	{_lo} = "C"
+elseif {_char} = "}"
+	{_hi} = "7"
+	{_lo} = "D"
+elseif {_char} = "~"
+	{_hi} = "7"
+	{_lo} = "E"
+
+# 0x20–0x2F  (high nibble 2)
+if {_hi} = ""
+	{_p} strpos " !\"#$%&'()*+,-./" {_char}
+	if {_p} > "-1"
+		{_hi} = "2"
+		{_lo} = {_hex/{_p}}
+
+# 0x30–0x3F  (high nibble 3)
+if {_hi} = ""
+	{_p} strpos "0123456789:;<=>?" {_char}
+	if {_p} > "-1"
+		{_hi} = "3"
+		{_lo} = {_hex/{_p}}
+
+# 0x40–0x4F  (high nibble 4)
+if {_hi} = ""
+	{_p} strpos "@ABCDEFGHIJKLMNO" {_char}
+	if {_p} > "-1"
+		{_hi} = "4"
+		{_lo} = {_hex/{_p}}
+
+# 0x50–0x5F  (high nibble 5)
+if {_hi} = ""
+	{_p} strpos "PQRSTUVWXYZ[\\]^_" {_char}
+	if {_p} > "-1"
+		{_hi} = "5"
+		{_lo} = {_hex/{_p}}
+
+# 0x60–0x6F  (high nibble 6)
+if {_hi} = ""
+	{_p} strpos "`abcdefghijklmno" {_char}
+	if {_p} > "-1"
+		{_hi} = "6"
+		{_lo} = {_hex/{_p}}
+
+# 0x70–0x7A  (high nibble 7, partial — 0x7B–0x7E handled above)
+if {_hi} = ""
+	{_p} strpos "pqrstuvwxyz" {_char}
+	if {_p} > "-1"
+		{_hi} = "7"
+		{_lo} = {_hex/{_p}}
+
+{return} = "{_hi}{_lo}"

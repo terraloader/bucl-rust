@@ -112,6 +112,8 @@ fn embed_stdlib(eval: &mut Evaluator) {
         ("implode",   include_str!("../functions/implode.bucl")),
         ("maxlength", include_str!("../functions/maxlength.bucl")),
         ("slice",     include_str!("../functions/slice.bucl")),
+        ("tohex",     include_str!("../functions/tohex.bucl")),
+        ("urlencode", include_str!("../functions/urlencode.bucl")),
     ];
     for (name, src) in stdlib {
         eval.embedded_functions.insert(name.to_string(), src.to_string());
