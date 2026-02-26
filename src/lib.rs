@@ -10,8 +10,9 @@
 /// | `bucl_run(src_ptr, src_len) -> *mut u8` | Run BUCL; returns `[u32-le len][utf-8 bytes]` |
 ///
 /// The standard library BUCL functions (`strpos`, `substr`, `reverse`,
-/// `explode`, `implode`, `maxlength`, `slice`) are embedded at compile time
-/// via `include_str!` so they are available without a filesystem.
+/// `explode`, `implode`, `maxlength`, `slice`, `tohex`, `urlencode`) are
+/// embedded at compile time via `include_str!` so they are available without
+/// a filesystem.
 ///
 /// On WASM the `random` function needs a `js_math_random` import and the
 /// `sleep` function needs a `js_sleep` import from the host
@@ -112,6 +113,8 @@ fn embed_stdlib(eval: &mut Evaluator) {
         ("implode",   include_str!("../functions/implode.bucl")),
         ("maxlength", include_str!("../functions/maxlength.bucl")),
         ("slice",     include_str!("../functions/slice.bucl")),
+        ("tohex",     include_str!("../functions/tohex.bucl")),
+        ("urlencode", include_str!("../functions/urlencode.bucl")),
     ];
     for (name, src) in stdlib {
         eval.embedded_functions.insert(name.to_string(), src.to_string());
