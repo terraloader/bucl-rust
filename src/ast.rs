@@ -10,6 +10,22 @@ pub enum Param {
     Bare(String),
 }
 
+/// A fully-evaluated function argument, optionally carrying the source variable name.
+///
+/// When a variable reference like `{port}` or `{db/port}` is passed to a function,
+/// the last path segment becomes the parameter name.  This lets functions access
+/// arguments by name (e.g. `{port}`) in addition to by position (`{0}`).
+#[derive(Debug, Clone)]
+pub struct ResolvedArg {
+    /// Parameter name derived from the source variable.
+    /// - `{port}` → `Some("port")`
+    /// - `{db/port}` → `Some("port")` (last path segment)
+    /// - `"literal"` or bare `42` → `None`
+    pub name: Option<String>,
+    /// The resolved string value.
+    pub value: String,
+}
+
 /// A single BUCL statement, parsed from one (logical) line.
 #[derive(Debug, Clone)]
 pub struct Statement {

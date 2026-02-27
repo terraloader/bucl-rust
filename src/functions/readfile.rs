@@ -21,16 +21,21 @@ mod native {
     impl BuclFunction for ReadFile {
         fn call(
             &self,
-            _evaluator: &mut Evaluator,
+            evaluator: &mut Evaluator,
             _target: Option<&str>,
             args: Vec<String>,
             _block: Option<&[Statement]>,
             _continuation: Option<&Statement>,
         ) -> Result<Option<String>> {
-            let path = args.first().ok_or_else(|| {
-                BuclError::RuntimeError("readfile: missing path argument".into())
-            })?;
-            let contents = fs::read_to_string(path)?;
+            // Named param: {path} = "hello.txt"; {c} readfile {path}
+            let path = evaluator
+                .named_arg("path")
+                .cloned()
+                .or_else(|| args.first().cloned())
+                .ok_or_else(|| {
+                    BuclError::RuntimeError("readfile: missing path argument".into())
+                })?;
+            let contents = fs::read_to_string(&path)?;
             Ok(Some(contents))
         }
     }

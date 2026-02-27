@@ -1,0 +1,27 @@
+# ── Named Parameters Test Suite ──────────────────────────────────────────────
+
+# Test 1: Named params from root variables
+{port} = "5593"
+{host} = "127.0.0.1"
+{r} connect_test {host} {port}
+echo "test1: {r}"
+
+# Test 2: Order independence — same result regardless of arg order
+{r2} connect_test {port} {host}
+echo "test2: {r2}"
+
+# Test 3: Named params from sub-variables ({db/port} → name "port")
+{db/port} = "3308"
+{db/host} = "myserver"
+{r3} connect_test {db/host} {db/port}
+echo "test3: {r3}"
+
+# Test 4: Struct expansion — {srv} unpacks its named sub-vars
+{srv/port} = "8080"
+{srv/host} = "localhost"
+{r4} connect_test {srv}
+echo "test4: {r4}"
+
+# Test 5: Purely positional (backward compat) — same function, no named params
+{r5} connect_test "myhost" "9090"
+echo "test5: {r5}"

@@ -19,13 +19,17 @@ pub struct Math;
 impl BuclFunction for Math {
     fn call(
         &self,
-        _evaluator: &mut Evaluator,
+        evaluator: &mut Evaluator,
         _target: Option<&str>,
         args: Vec<String>,
         _block: Option<&[Statement]>,
         _continuation: Option<&Statement>,
     ) -> Result<Option<String>> {
-        let expr = args.join("");
+        // Named param: {expr} = "3+3"; {m} math {expr}
+        let expr = evaluator
+            .named_arg("expr")
+            .cloned()
+            .unwrap_or_else(|| args.join(""));
         let value = eval_expr(&expr)
             .map_err(|e| BuclError::RuntimeError(format!("math: {}", e)))?;
 

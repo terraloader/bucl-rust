@@ -2,9 +2,58 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::ast::{Param, Statement};
+use crate::ast::{Param, ResolvedArg, Statement};
 use crate::error::{BuclError, Result};
 use crate::functions::BuclFunction;
+
+// ---------------------------------------------------------------------------
+// Helpers (free functions)
+// ---------------------------------------------------------------------------
+
+/// Derive a parameter name from a variable path.
+///
+/// - `"port"` → `Some("port")`
+/// - `"db/port"` → `Some("port")` (last segment)
+/// - `"0"` / `"argc"` / `"args"` / … → `None` (reserved or numeric)
+fn extract_param_name(var_name: &str) -> Option<String> {
+    let base = match var_name.rfind('/') {
+        Some(pos) => &var_name[pos + 1..],
+        None => var_name,
+    };
+    if base.is_empty() {
+        return None;
+    }
+    // Numeric names would collide with positional {0}, {1}, …
+    if base.parse::<usize>().is_ok() {
+        return None;
+    }
+    // Reserved variable names used by the calling convention.
+    const RESERVED: &[&str] = &["argc", "args", "target", "return", "count", "length"];
+    if RESERVED.contains(&base) {
+        return None;
+    }
+    Some(base.to_string())
+}
+
+/// Check for duplicate named parameters and return an error if found.
+fn check_duplicate_names(resolved: &[ResolvedArg]) -> Result<()> {
+    let mut seen: HashMap<&str, usize> = HashMap::new();
+    for (i, arg) in resolved.iter().enumerate() {
+        if let Some(ref name) = arg.name {
+            if let Some(prev_i) = seen.insert(name.as_str(), i) {
+                return Err(BuclError::RuntimeError(format!(
+                    "duplicate named parameter '{}' (args {} and {})",
+                    name, prev_i, i
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Evaluator
+// ---------------------------------------------------------------------------
 
 /// The runtime environment: variable store + function registry.
 pub struct Evaluator {
@@ -20,6 +69,11 @@ pub struct Evaluator {
     /// extension).  Checked before the filesystem so WASM builds can embed
     /// the standard library with `include_str!`.
     pub embedded_functions: HashMap<String, String>,
+    /// Named arguments for the current function call.
+    ///
+    /// Set before each function dispatch, cleared afterward.  Built-in Rust
+    /// functions can read these via [`named_arg`](Evaluator::named_arg).
+    pub call_named_args: HashMap<String, String>,
 }
 
 impl Evaluator {
@@ -30,6 +84,7 @@ impl Evaluator {
             base_dir: None,
             output_buffer: Vec::new(),
             embedded_functions: HashMap::new(),
+            call_named_args: HashMap::new(),
         }
     }
 
@@ -39,6 +94,18 @@ impl Evaluator {
 
     pub fn register<F: BuclFunction + 'static>(&mut self, name: &str, func: F) {
         self.functions.insert(name.to_string(), Arc::new(func));
+    }
+
+    // -----------------------------------------------------------------------
+    // Named argument access (for built-in functions)
+    // -----------------------------------------------------------------------
+
+    /// Look up a named argument for the current function call.
+    ///
+    /// Built-in Rust functions can call this to check whether the caller
+    /// passed a variable whose name (or last path segment) matches `name`.
+    pub fn named_arg(&self, name: &str) -> Option<&String> {
+        self.call_named_args.get(name)
     }
 
     // -----------------------------------------------------------------------
@@ -232,6 +299,58 @@ impl Evaluator {
     /// echo "colors: {colors}"           # prints: colors: red green blue
     /// ```
     pub fn eval_params(&self, params: &[Param]) -> Vec<String> {
+        self.eval_params_with_names(params)
+            .into_iter()
+            .map(|ra| ra.value)
+            .collect()
+    }
+
+    /// Find non-numeric, non-metadata sub-variables of `parent`.
+    ///
+    /// Used for **struct expansion**: when `{db}` is passed as an argument and
+    /// `db/port`, `db/host` exist, those sub-variables are expanded as named
+    /// parameters.
+    fn find_named_sub_vars(&self, parent: &str) -> Vec<(String, String)> {
+        let prefix = format!("{}/", parent);
+        let mut result = Vec::new();
+        for (key, value) in &self.variables {
+            if let Some(suffix) = key.strip_prefix(&prefix) {
+                // Skip nested sub-variables (e.g. "db/config/x" when parent is "db").
+                if suffix.contains('/') {
+                    continue;
+                }
+                // Skip metadata.
+                if suffix == "count" || suffix == "length" {
+                    continue;
+                }
+                // Skip numeric indices (from array assignment).
+                if suffix.parse::<usize>().is_ok() {
+                    continue;
+                }
+                result.push((suffix.to_string(), value.clone()));
+            }
+        }
+        // Sort alphabetically for deterministic ordering.
+        result.sort_by(|a, b| a.0.cmp(&b.0));
+        result
+    }
+
+    /// Evaluate parameters while preserving variable-name metadata.
+    ///
+    /// This is the name-aware version of [`eval_params`].  Each returned
+    /// [`ResolvedArg`] carries an optional `name` derived from the source
+    /// variable (last path segment).
+    ///
+    /// **Struct expansion** — if a root-level variable `{db}` has non-numeric,
+    /// non-metadata sub-variables (e.g. `db/port`, `db/host`), passing `{db}`
+    /// as an argument expands it into multiple named arguments:
+    ///
+    /// ```bucl
+    /// {db/port} = "3308"
+    /// {db/host} = "myserver"
+    /// {r} connect {db}          # expands to connect host:"myserver" port:"3308"
+    /// ```
+    pub fn eval_params_with_names(&self, params: &[Param]) -> Vec<ResolvedArg> {
         let mut result = Vec::new();
         for p in params {
             match p {
@@ -245,6 +364,19 @@ impl Evaluator {
 
                     // Only expand root-level variable names (no '/').
                     if !resolved_name.contains('/') {
+                        // Check for struct expansion first: named sub-variables.
+                        let named_subs = self.find_named_sub_vars(&resolved_name);
+                        if !named_subs.is_empty() {
+                            for (suffix, value) in named_subs {
+                                result.push(ResolvedArg {
+                                    name: Some(suffix),
+                                    value,
+                                });
+                            }
+                            continue;
+                        }
+
+                        // Array expansion: count > 1 → expand numerically, no names.
                         let count: usize = self
                             .variables
                             .get(&format!("{}/count", resolved_name))
@@ -252,22 +384,32 @@ impl Evaluator {
                             .unwrap_or(0);
 
                         if count > 1 {
-                            // Expand to individual elements.
                             for i in 0..count {
-                                result.push(
-                                    self.variables
+                                result.push(ResolvedArg {
+                                    name: None,
+                                    value: self
+                                        .variables
                                         .get(&format!("{}/{}", resolved_name, i))
                                         .cloned()
                                         .unwrap_or_default(),
-                                );
+                                });
                             }
                             continue;
                         }
                     }
 
-                    result.push(self.resolve_var(name));
+                    // Single value — carry the variable name.
+                    result.push(ResolvedArg {
+                        name: extract_param_name(&resolved_name),
+                        value: self.resolve_var(name),
+                    });
                 }
-                _ => result.push(self.eval_param(p)),
+                _ => {
+                    result.push(ResolvedArg {
+                        name: None,
+                        value: self.eval_param(p),
+                    });
+                }
             }
         }
         result
@@ -285,7 +427,22 @@ impl Evaluator {
     }
 
     pub fn evaluate_statement(&mut self, stmt: &Statement) -> Result<()> {
-        let args = self.eval_params(&stmt.args);
+        // Resolve args with names preserved.
+        let resolved = self.eval_params_with_names(&stmt.args);
+
+        // Check for duplicate named parameters.
+        check_duplicate_names(&resolved)?;
+
+        // Extract flat values for built-in functions.
+        let values: Vec<String> = resolved.iter().map(|a| a.value.clone()).collect();
+
+        // Build named-args map and set on evaluator so built-in functions
+        // can access them via `self.named_arg("name")`.
+        let named: HashMap<String, String> = resolved
+            .iter()
+            .filter_map(|a| a.name.as_ref().map(|n| (n.clone(), a.value.clone())))
+            .collect();
+        self.call_named_args = named;
 
         // Resolve target name — supports nested variable refs like {var/{key}}.
         let resolved_target: Option<String> = stmt.target.as_ref().map(|t| {
@@ -297,10 +454,11 @@ impl Evaluator {
             let result = func.call(
                 self,
                 resolved_target.as_deref(),
-                args,
+                values,
                 stmt.block.as_deref(),
                 stmt.continuation.as_deref(),
             )?;
+            self.call_named_args.clear();
             if let (Some(target), Some(value)) = (&resolved_target, result) {
                 self.set_var(target, value);
             }
@@ -308,10 +466,11 @@ impl Evaluator {
         }
 
         // 2. Fall back to a dynamically loaded .bucl function file.
+        self.call_named_args.clear();
         let result = self.call_bucl_function(
             &stmt.function.clone(),
             resolved_target.as_deref(),
-            args,
+            resolved,
         )?;
         if let (Some(target), Some(value)) = (&resolved_target, result) {
             self.set_var(target, value);
@@ -359,6 +518,8 @@ impl Evaluator {
     ///
     /// ## Calling convention
     /// - Arguments are available as `{0}`, `{1}`, … inside the function.
+    /// - Named arguments (derived from the caller's variable names) are also
+    ///   injected: e.g. passing `{port}` makes `{port}` available by name.
     /// - `{argc}` holds the number of arguments.
     /// - `{target}` holds the caller's target variable name (if any).
     ///
@@ -371,7 +532,7 @@ impl Evaluator {
         &mut self,
         name: &str,
         target: Option<&str>,
-        args: Vec<String>,
+        resolved_args: Vec<ResolvedArg>,
     ) -> Result<Option<String>> {
         let source = self
             .find_bucl_function(name)
@@ -386,26 +547,37 @@ impl Evaluator {
         child.embedded_functions = self.embedded_functions.clone();
         crate::functions::register_all(&mut child);
 
+        // Extract string values for positional injection.
+        let values: Vec<String> = resolved_args.iter().map(|a| a.value.clone()).collect();
+
         // Inject call arguments — bypass set_var to avoid spurious output.
-        let argc = args.len();
+        let argc = values.len();
         child.variables.insert("argc".to_string(), argc.to_string());
-        for (i, arg) in args.iter().enumerate() {
-            child.variables.insert(i.to_string(), arg.clone());
+        for (i, val) in values.iter().enumerate() {
+            child.variables.insert(i.to_string(), val.clone());
         }
         // Also expose arguments as a structured {args} variable so that BUCL
         // functions can use {args/{i}} for dynamic positional access without
         // needing the `getvar` built-in.
-        child.variables.insert("args".to_string(), args.join(""));
+        child.variables.insert("args".to_string(), values.join(""));
         child
             .variables
             .insert("args/count".to_string(), argc.to_string());
-        let args_length: usize = args.iter().map(|s| s.chars().count()).sum();
+        let args_length: usize = values.iter().map(|s| s.chars().count()).sum();
         child
             .variables
             .insert("args/length".to_string(), args_length.to_string());
-        for (i, arg) in args.iter().enumerate() {
-            child.variables.insert(format!("args/{}", i), arg.clone());
+        for (i, val) in values.iter().enumerate() {
+            child.variables.insert(format!("args/{}", i), val.clone());
         }
+
+        // Inject named parameters as variables in the child scope.
+        for ra in &resolved_args {
+            if let Some(ref param_name) = ra.name {
+                child.variables.insert(param_name.clone(), ra.value.clone());
+            }
+        }
+
         if let Some(t) = target {
             child.variables.insert("target".to_string(), t.to_string());
         }
@@ -448,5 +620,84 @@ impl Evaluator {
         } else {
             Ok(return_val)
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_param_name_root() {
+        assert_eq!(extract_param_name("port"), Some("port".to_string()));
+        assert_eq!(extract_param_name("host"), Some("host".to_string()));
+    }
+
+    #[test]
+    fn test_extract_param_name_sub_variable() {
+        assert_eq!(extract_param_name("db/port"), Some("port".to_string()));
+        assert_eq!(extract_param_name("config/db/host"), Some("host".to_string()));
+    }
+
+    #[test]
+    fn test_extract_param_name_numeric() {
+        assert_eq!(extract_param_name("0"), None);
+        assert_eq!(extract_param_name("42"), None);
+        assert_eq!(extract_param_name("args/0"), None);
+    }
+
+    #[test]
+    fn test_extract_param_name_reserved() {
+        assert_eq!(extract_param_name("argc"), None);
+        assert_eq!(extract_param_name("args"), None);
+        assert_eq!(extract_param_name("target"), None);
+        assert_eq!(extract_param_name("return"), None);
+        assert_eq!(extract_param_name("count"), None);
+        assert_eq!(extract_param_name("length"), None);
+    }
+
+    #[test]
+    fn test_extract_param_name_empty() {
+        assert_eq!(extract_param_name(""), None);
+    }
+
+    #[test]
+    fn test_find_named_sub_vars() {
+        let mut eval = Evaluator::new();
+        eval.variables.insert("db/port".to_string(), "3308".to_string());
+        eval.variables.insert("db/host".to_string(), "myserver".to_string());
+        eval.variables.insert("db/count".to_string(), "1".to_string());
+        eval.variables.insert("db/length".to_string(), "5".to_string());
+        eval.variables.insert("db/0".to_string(), "zero".to_string());
+        eval.variables.insert("db/nested/deep".to_string(), "skip".to_string());
+
+        let subs = eval.find_named_sub_vars("db");
+        assert_eq!(subs, vec![
+            ("host".to_string(), "myserver".to_string()),
+            ("port".to_string(), "3308".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_check_duplicate_names_ok() {
+        let args = vec![
+            ResolvedArg { name: Some("host".to_string()), value: "a".to_string() },
+            ResolvedArg { name: Some("port".to_string()), value: "b".to_string() },
+            ResolvedArg { name: None, value: "c".to_string() },
+        ];
+        assert!(check_duplicate_names(&args).is_ok());
+    }
+
+    #[test]
+    fn test_check_duplicate_names_error() {
+        let args = vec![
+            ResolvedArg { name: Some("port".to_string()), value: "a".to_string() },
+            ResolvedArg { name: Some("port".to_string()), value: "b".to_string() },
+        ];
+        assert!(check_duplicate_names(&args).is_err());
     }
 }

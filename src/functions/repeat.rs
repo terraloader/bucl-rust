@@ -33,12 +33,15 @@ impl BuclFunction for Repeat {
     ) -> Result<Option<String>> {
         let prefix = target.unwrap_or("r");
 
-        let count_str = args
-            .first()
+        // Named param: {count} = 5; {r} repeat {count}
+        let count_str = evaluator
+            .named_arg("count")
+            .cloned()
+            .or_else(|| args.first().cloned())
             .ok_or_else(|| BuclError::RuntimeError("repeat: missing count argument".into()))?;
 
         let count: usize = count_str.parse().map_err(|_| {
-            BuclError::RuntimeError(format!("repeat: '{}' is not a valid count", count_str))
+            BuclError::RuntimeError(format!("repeat: '{}' is not a valid count", &count_str))
         })?;
 
         // Populate the target variable with metadata before iterating so the

@@ -25,19 +25,27 @@ mod native {
     impl BuclFunction for WriteFile {
         fn call(
             &self,
-            _evaluator: &mut Evaluator,
+            evaluator: &mut Evaluator,
             _target: Option<&str>,
             args: Vec<String>,
             _block: Option<&[Statement]>,
             _continuation: Option<&Statement>,
         ) -> Result<Option<String>> {
-            if args.len() < 2 {
-                return Err(BuclError::RuntimeError(
-                    "writefile: requires a path and content".into(),
-                ));
-            }
-            let path = &args[0];
-            let content = args[1..].join("");
+            // Named params: {path} = "out.txt"; {content} = "Hello"
+            //               writefile {path} {content}
+            let path = evaluator
+                .named_arg("path")
+                .cloned()
+                .or_else(|| args.first().cloned())
+                .ok_or_else(|| {
+                    BuclError::RuntimeError("writefile: requires a path and content".into())
+                })?;
+            let content = evaluator
+                .named_arg("content")
+                .cloned()
+                .unwrap_or_else(|| {
+                    if args.len() > 1 { args[1..].join("") } else { String::new() }
+                });
             fs::write(path, &content)?;
             Ok(Some(content))
         }

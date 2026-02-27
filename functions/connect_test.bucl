@@ -1,0 +1,19 @@
+# connect_test — supports both named and positional calling conventions.
+#
+# Named:      {r} connect_test {host} {port}    → uses {host} and {port}
+# Positional: {r} connect_test "myhost" "9090"   → uses {0} and {1}
+# Struct:     {r} connect_test {db}               → unpacks {db/host}, {db/port}
+#
+# The function checks for named params first, falls back to positional.
+
+if {host} != ""
+	{_host} = {host}
+else
+	{_host} = {0}
+
+if {port} != ""
+	{_port} = {port}
+else
+	{_port} = {1}
+
+{return} = "{_host}:{_port}"

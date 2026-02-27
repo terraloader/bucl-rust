@@ -7,12 +7,24 @@
 # compare each candidate substring against the needle.  Once a match is
 # found the result is locked and subsequent iterations are skipped.
 #
-# Usage:
+# Usage (positional):
 #   {p} strpos "hello world" "world"   # {p} = "6"
 #   {p} strpos "hello" "xyz"           # {p} = "-1"
+#
+# Usage (named):
+#   {text} = "hello world"
+#   {needle} = "world"
+#   {p} strpos {text} {needle}
 
-{_text} = {0}
-{_needle} = {1}
+if {text} != ""
+	{_text} = {text}
+else
+	{_text} = {0}
+
+if {needle} != ""
+	{_needle} = {needle}
+else
+	{_needle} = {1}
 {_text_len} = {_text/length}
 {_needle_len} = {_needle/length}
 {_result} = "-1"
