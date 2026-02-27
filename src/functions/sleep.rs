@@ -24,20 +24,25 @@ pub struct Sleep;
 impl BuclFunction for Sleep {
     fn call(
         &self,
-        _evaluator: &mut Evaluator,
+        evaluator: &mut Evaluator,
         _target: Option<&str>,
         args: Vec<String>,
         _block: Option<&[Statement]>,
         _continuation: Option<&Statement>,
     ) -> Result<Option<String>> {
-        let secs_str = args.first().ok_or_else(|| {
-            BuclError::RuntimeError("sleep: expected a number of seconds".into())
-        })?;
+        // Named param: {seconds} = 0.5; sleep {seconds}
+        let secs_str = evaluator
+            .named_arg("seconds")
+            .cloned()
+            .or_else(|| args.first().cloned())
+            .ok_or_else(|| {
+                BuclError::RuntimeError("sleep: expected a number of seconds".into())
+            })?;
 
         let secs: f64 = secs_str.parse().map_err(|_| {
             BuclError::RuntimeError(format!(
                 "sleep: '{}' is not a valid number of seconds",
-                secs_str
+                &secs_str
             ))
         })?;
 

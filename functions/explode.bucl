@@ -5,20 +5,32 @@
 # Side-effect: sets {target/0}, {target/1}, … to each part;
 #              {target/count} holds the number of parts.
 #
-# Usage:
+# Usage (positional):
 #   {parts} explode "," "one,two,three"
 #   # {parts/count} = "3"
 #   # {parts/0} = "one"
 #   # {parts/1} = "two"
 #   # {parts/2} = "three"
+#
+# Usage (named):
+#   {delimiter} = ","
+#   {text} = "one,two,three"
+#   {parts} explode {delimiter} {text}
 
-{_sep} = {0}
-{_text} = {1}
+if {delimiter} != ""
+	{_sep} = {delimiter}
+else
+	{_sep} = {0}
+
+if {text} != ""
+	{_text} = {text}
+else
+	{_text} = {1}
 {_sep_len} = {_sep/length}
 {_text_len} = {_text/length}
 {_count} = "0"
 {_done} = "0"
-{_remaining} = {1}
+{_remaining} = {_text}
 {_concat} = ""
 
 # We need at most text_len+1 iterations (one per separator + final piece).

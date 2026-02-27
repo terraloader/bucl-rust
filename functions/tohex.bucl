@@ -10,12 +10,19 @@
 # that each share the same high nibble (2–7).  strpos locates the character
 # within its group; that position *is* the low nibble — no division needed.
 #
-# Usage:
+# Usage (positional):
 #   {h} tohex " "   # {h} = "20"
 #   {h} tohex "A"   # {h} = "41"
 #   {h} tohex "/"   # {h} = "2F"
+#
+# Usage (named):
+#   {char} = "A"
+#   {h} tohex {char}
 
-{_char} = {0}
+if {char} != ""
+	{_char} = {char}
+else
+	{_char} = {0}
 {_hex} = "0123456789ABCDEF"
 {_hi} = ""
 {_lo} = ""

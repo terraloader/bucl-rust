@@ -44,7 +44,7 @@ pub struct Random;
 impl BuclFunction for Random {
     fn call(
         &self,
-        _evaluator: &mut Evaluator,
+        evaluator: &mut Evaluator,
         _target: Option<&str>,
         args: Vec<String>,
         _block: Option<&[Statement]>,
@@ -56,10 +56,18 @@ impl BuclFunction for Random {
             })
         };
 
-        let (min, max) = match args.as_slice() {
-            [] => (0, i64::MAX),
-            [max_s] => (0, parse(max_s)?),
-            [min_s, max_s, ..] => (parse(min_s)?, parse(max_s)?),
+        // Named params: {min} = 1; {max} = 6; {r} random {min} {max}
+        let named_min = evaluator.named_arg("min").cloned();
+        let named_max = evaluator.named_arg("max").cloned();
+
+        let (min, max) = match (named_min, named_max) {
+            (Some(min_s), Some(max_s)) => (parse(&min_s)?, parse(&max_s)?),
+            (None, Some(max_s)) => (0, parse(&max_s)?),
+            _ => match args.as_slice() {
+                [] => (0, i64::MAX),
+                [max_s] => (0, parse(max_s)?),
+                [min_s, max_s, ..] => (parse(min_s)?, parse(max_s)?),
+            },
         };
 
         if min > max {

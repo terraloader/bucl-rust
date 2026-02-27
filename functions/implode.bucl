@@ -3,15 +3,22 @@
 # Arguments: separator (arg 0), then one or more items.
 # Returns: the joined string.
 #
-# Usage:
+# Usage (positional):
 #   {res} implode "," "one" "two" "three"   # {res} = "one,two,three"
+#
+# Usage (named):
+#   {sep} = ","
+#   {res} implode {sep} "one" "two" "three"
 #
 # A multi-arg variable expands to its individual elements when used directly,
 # so passing an array variable works exactly like listing the items by hand:
 #   {words} = "one" "two" "three"
 #   {res} implode "," {words}               # {res} = "one,two,three"
 
-{_sep} = {args/0}
+if {sep} != ""
+	{_sep} = {sep}
+else
+	{_sep} = {args/0}
 {_n_items} math "{argc}-1"
 
 if {_n_items} = "0"

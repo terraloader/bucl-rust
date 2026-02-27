@@ -6,13 +6,29 @@
 # Out-of-range characters resolve to "" so no explicit clamping is needed:
 # if start >= string length or start+length exceeds it, the excess is empty.
 #
-# Usage:
+# Usage (positional):
 #   {res} substr 0 3 "AAAaaa"        # {res} = "AAA"
 #   {res} substr 6 5 "hello world"   # {res} = "world"
+#
+# Usage (named):
+#   {start} = 0
+#   {length} = 3
+#   {string} = "AAAaaa"
+#   {res} substr {start} {length} {string}
 
-{_start} = {0}
+if {start} != ""
+	{_start} = {start}
+else
+	{_start} = {0}
+
+if {string} != ""
+	{_str} = {string}
+else
+	{_str} = {2}
+
+# "length" is a reserved metadata name and won't be injected as a named
+# param, so we always fall back to positional for this argument.
 {_len} = {1}
-{_str} = {2}
 {_result} = ""
 
 {r} repeat {_len}

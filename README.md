@@ -20,6 +20,7 @@ BUCL is a simple, text-based scripting language implemented in Rust. It is desig
   - [Loops](#loops)
 - [Built-in Functions](#built-in-functions)
 - [User-Defined Functions](#user-defined-functions)
+- [Named Parameters](#named-parameters)
 - [Examples](#examples)
 - [Project Structure](#project-structure)
 
@@ -316,6 +317,7 @@ Inside a function file, the following variables are available:
 | `{argc}`          | Number of arguments                                  |
 | `{target}`        | Name of the caller's target variable                 |
 | `{return}`        | Set this to return a value                           |
+| Named params      | When called with `{port}`, `{port}` is available by name (see [Named Parameters](#named-parameters)) |
 
 The `{args/N}` variables allow dynamic positional access via `{args/{i}}`.
 
@@ -330,6 +332,73 @@ The bundled `functions/` directory includes:
 | `implode`    | Join arguments with a delimiter                           |
 | `maxlength`  | Return the length of the longest argument                 |
 | `slice`      | Extract a slice of arguments                              |
+
+---
+
+## Named Parameters
+
+When you pass a variable reference to a function, the variable's name automatically becomes available inside the function as a **named parameter**. This means functions can access arguments by name in addition to by position — and the order of named arguments doesn't matter.
+
+### Basic Named Parameters
+
+```
+{port} = "5593"
+{host} = "127.0.0.1"
+
+# Both calls produce the same result — order doesn't matter:
+{r} connect {host} {port}     # connect sees {host} and {port}
+{r} connect {port} {host}     # same result
+```
+
+Inside `connect.bucl`, the function can access `{host}` and `{port}` by name, while `{0}` and `{1}` still provide positional access.
+
+### Sub-Variable Names
+
+When passing a sub-variable like `{db/port}`, the **last path segment** becomes the parameter name:
+
+```
+{db/port} = "3308"
+{db/host} = "myserver"
+{r} connect {db/host} {db/port}   # connect sees {host} and {port}
+```
+
+### Struct Expansion
+
+A variable that has named sub-variables can be passed directly — its sub-variables are **unpacked** as named parameters:
+
+```
+{srv/port} = "8080"
+{srv/host} = "localhost"
+{r} connect {srv}     # expands to host:"localhost", port:"8080"
+```
+
+This is equivalent to passing each sub-variable individually.
+
+### Writing Functions That Support Both Calling Conventions
+
+Functions can check for named parameters and fall back to positional:
+
+```
+# connect.bucl — works with named or positional arguments
+if {host} != ""
+    {_host} = {host}
+else
+    {_host} = {0}
+
+if {port} != ""
+    {_port} = {port}
+else
+    {_port} = {1}
+
+{return} = "{_host}:{_port}"
+```
+
+### Rules
+
+- **Bare words and quoted strings** (e.g. `"hello"`, `42`) are positional-only — they don't carry names.
+- **Duplicate names** produce a runtime error. For example, passing `{db/port}` and `{app/port}` (both named "port") to the same function is an error.
+- **Reserved names** (`argc`, `args`, `target`, `return`, `count`, `length`) and numeric names (`0`, `1`, …) are never injected as named parameters.
+- All standard library functions (both Rust built-ins and `.bucl` functions) support named parameters.
 
 ---
 

@@ -4,11 +4,23 @@
 # Negative indices count from the end.
 # Returns: selected items joined with spaces.
 #
-# Usage:
+# Usage (positional):
 #   {res} slice 1 -1 "cut" "keep1" "keep2" "cut"   # {res} = "keep1 keep2"
+#
+# Usage (named):
+#   {start} = 1
+#   {end} = -1
+#   {res} slice {start} {end} "cut" "keep1" "keep2" "cut"
 
-{_start} = {0}
-{_end} = {1}
+if {start} != ""
+	{_start} = {start}
+else
+	{_start} = {0}
+
+if {end} != ""
+	{_end} = {end}
+else
+	{_end} = {1}
 {_item_count} math "{argc}-2"
 
 # Resolve negative start index.
