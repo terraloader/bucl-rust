@@ -2,6 +2,8 @@
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
 
+THIS PROJECT IS CURRENTLY WORK-IN-PROGRESS!
+
 BUCL is a simple, text-based scripting language implemented in Rust. It is designed to be easy to learn, with a minimalist syntax built around string variables, indented blocks, and composable built-in functions.
 
 ## Table of Contents
